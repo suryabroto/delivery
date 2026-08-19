@@ -3,12 +3,13 @@ const SUPABASE_URL = "https://zuygfbthujlnsvytntts.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_9mM62UE5l4DgWwrmZ1KluA_2eLXPdat";
 
 // Initialize Supabase Client
-let db = null;
-if (!window.supabase) {
-    console.error("Supabase SDK not loaded! Make sure to import Supabase compat SDK in your HTML.");
-} else {
-    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    window.db = db;
+{
+    const supabaseObj = window.supabase || (typeof supabase !== 'undefined' ? supabase : null);
+    if (!supabaseObj) {
+        console.error("Supabase SDK not loaded! Make sure to import Supabase compat SDK in your HTML.");
+    } else {
+        window.db = supabaseObj.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
 }
 
 // Global Logout helper
