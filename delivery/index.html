@@ -1,0 +1,3170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>IyersFood – Route App v3.1</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Supabase SDK CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+<style>
+    :root {
+        --primary: #4f46e5;
+        --appam-color: #f59e0b;
+        --dosa-color: #4f46e5;
+        --danger: #ef4444;
+        --success: #10b981;
+        --bg-body: #f1f5f9;
+        --bg-card: #ffffff;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --radius: 12px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: 'Inter', sans-serif; }
+    body { background-color: var(--bg-body); color: var(--text-main); font-size: 14px; padding-bottom: 0; }
+    
+    /* --- HEADER --- */
+    header {
+        background: white; padding: 12px 16px; position: sticky; top: 0; z-index: 100;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 12px;
+    }
+    .header-top { display: flex; justify-content: space-between; align-items: center; }
+    .brand { font-weight: 800; font-size: 18px; color: var(--text-main); }
+    .brand span { color: var(--primary); }
+    
+    .controls-row { display: grid; grid-template-columns: 1.5fr 1fr; gap: 10px; }
+    input, select {
+        width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1;
+        background: #f8fafc; font-weight: 600; font-size: 13px; color: var(--text-main); outline: none;
+    }
+
+    .container { max-width: 600px; margin: 0 auto; padding: 16px; }
+
+    /* --- CARDS --- */
+    .card {
+        background: white; border-radius: var(--radius); margin-bottom: 16px;
+        border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.05); overflow: hidden;
+    }
+    .card-head {
+        padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid var(--border);
+        font-weight: 700; font-size: 13px; text-transform: uppercase; color: var(--text-muted);
+        display: flex; justify-content: space-between; align-items: center;
+    }
+
+    /* --- FORMS --- */
+    .trip-form { padding: 16px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .qty-group label { display: block; font-size: 10px; font-weight: 700; margin-bottom: 4px; }
+    
+    .btn-add-trip { width: 100%; padding: 12px; border-radius: 8px; border: none; background: var(--text-main); color: white; font-weight: 700; cursor: pointer; }
+    .btn-add-ret { width: 100%; padding: 12px; border-radius: 8px; border: none; background: var(--danger); color: white; font-weight: 700; cursor: pointer; }
+
+    /* --- TABLES --- */
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { text-align: left; padding: 8px 12px; background: #f1f5f9; color: var(--text-muted); }
+    td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; }
+    .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+    .btn-del { background: #fee2e2; color: #ef4444; border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; cursor: pointer; }
+
+    /* --- STATS --- */
+    .stats-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white; border: none; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; }
+    .stat-col { text-align: center; }
+    .stat-label { font-size: 10px; text-transform: uppercase; opacity: 0.7; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .stat-val { font-size: 20px; font-weight: 700; }
+    
+    .balance-row {
+        background: rgba(255,255,255,0.1); padding: 12px;
+        display: flex; justify-content: space-around;
+        border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .bal-item { text-align: center; }
+    .bal-lbl { font-size: 9px; opacity: 0.7; text-transform: uppercase; }
+    .bal-num { font-size: 14px; font-weight: 700; }
+    .bal-num.pos { color: #86efac; } /* Green if > 0 (Stock left) */
+    .bal-num.neg { color: #fca5a5; } /* Red if < 0 (Missing) */
+    .bal-num.zero { color: #fff; opacity: 0.5; } /* Zero is good */
+
+    /* --- SHOPS & TABS --- */
+    .shop-header { padding: 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: white; }
+    .shop-name { font-weight: 700; font-size: 14px; }
+    .shop-status { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; }
+    .completed .status-dot { background: var(--success); }
+    .completed .shop-name { color: var(--primary); }
+    .shop-body { display: none; padding: 16px; background: #f8fafc; border-top: 1px solid var(--border); }
+    .card.expanded .shop-body { display: block; }
+
+    /* --- CATEGORY SWITCHER --- */
+    .category-switch { display: flex; gap: 12px; margin-bottom: 16px; }
+    .cat-option { 
+        flex: 1; padding: 16px; background: white; border: 1px solid var(--border); 
+        border-radius: var(--radius); cursor: pointer; text-align: center;
+        transition: all 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    }
+    .cat-option .cat-icon { font-size: 24px; }
+    .cat-option .cat-label { font-size: 14px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+    
+    .cat-option.active { border-color: var(--primary); background: #e0e7ff; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15); transform: translateY(-2px); }
+    .cat-option.active .cat-label { color: var(--primary); }
+    
+    .cat-option[data-cat="LOOSE"].active { border-color: #f59e0b; background: #fff7ed; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15); }
+    .cat-option[data-cat="LOOSE"].active .cat-label { color: #f59e0b; }
+
+    .prod-tabs { display: flex; background: #e2e8f0; padding: 4px; border-radius: 8px; margin-bottom: 12px; }
+    .tab-btn { flex: 1; text-align: center; padding: 8px; font-size: 12px; font-weight: 700; color: var(--text-muted); border-radius: 6px; cursor: pointer; }
+    .tab-btn.active-dosa { background: white; color: var(--dosa-color); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .tab-btn.active-appam { background: white; color: var(--appam-color); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+
+    .input-panel { display: none; } .input-panel.active { display: block; }
+    .input-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
+    .input-grid label { display: block; font-size: 9px; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; color: var(--text-muted); text-align: center; }
+    .qty-input { text-align: center; padding: 8px 4px; background: white; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; font-size: 14px; }
+    .qty-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1); }
+    .qty-input.sale { background: #f0fdf4; border-color: #86efac; }
+    .qty-input.cred { background: #fef2f2; border-color: #fca5a5; }
+    .save-btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 700; margin-top: 12px; cursor: pointer; }
+
+    .driver-chips {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 4px 2px 12px 2px;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+    }
+    .driver-chips::-webkit-scrollbar { display: none; }
+
+    .driver-chip {
+        flex: 0 0 auto;
+        padding: 10px 20px;
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        scroll-snap-align: start;
+        text-align: center;
+        min-width: 80px;
+    }
+
+    .driver-chip:active { transform: scale(0.95); }
+
+    .driver-chip.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        transform: translateY(-1px);
+    }
+    
+    .driver-chip[data-driver=""] { background: #f8fafc; }
+    .driver-chip[data-driver=""].active { background: var(--text-main); color: white; border-color: var(--text-main); }
+    /* POP ANIMATION FOR NUMBERS */
+    @keyframes valuePop {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); color: var(--primary); }
+        100% { transform: scale(1); }
+    }
+    .val-updated { animation: valuePop 0.3s ease-out; }
+
+    /* --- ASYMMETRIC LAYOUT (SIDEBAR) --- copied from index.html */
+    .app-wrapper { display: flex; min-height: 100vh; }
+    
+    .sidebar {
+        width: 260px; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white;
+        position: fixed; top: 0; left: 0; bottom: 0; z-index: 1000;
+        padding: 24px; display: flex; flex-direction: column; transition: transform 0.3s ease;
+    }
+    
+    .sidebar-brand { font-weight: 800; font-size: 20px; margin-bottom: 40px; color: white; display: flex; align-items: center; gap: 10px; }
+    .sidebar-brand span { color: rgba(255,255,255,0.4); }
+
+    .nav-list { list-style: none; flex: 1; display: flex; flex-direction: column; }
+    .nav-item { 
+        padding: 12px 16px; border-radius: 12px; margin-bottom: 8px; cursor: pointer;
+        display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 14px;
+        transition: all 0.2s; color: rgba(255,255,255,0.7);
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.1); color: white; }
+    .nav-item.active { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4); }
+    .nav-icon { font-size: 18px; width: 24px; text-align: center; }
+
+    .main-content { flex: 1; margin-left: 260px; min-width: 0; position: relative; }
+    
+    /* Top Bar Redesign */
+    .top-bar {
+        background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border); padding: 0 16px; position: sticky; top: 0; z-index: 900;
+        display: flex; gap: 8px; align-items: center; justify-content: space-between; height: 64px;
+    }
+
+    .top-controls { display: flex; gap: 10px; align-items: center; }
+
+    .top-select {
+        height: 38px; padding: 0 12px; font-size: 12px; font-weight: 700; border-radius: 10px;
+        border: 1px solid var(--border); background: var(--bg-body); 
+        appearance: none; cursor: pointer;
+    }
+
+    /* Switch Style from Index */
+    .top-bar-switch { display: flex; gap: 2px; background: #e2e8f0; padding: 3px; border-radius: 10px; height: 38px; }
+    .sw-option { 
+        padding: 0 14px; height: 32px; border-radius: 8px; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; gap: 6px; 
+        font-weight: 700; font-size: 11px; color: var(--text-muted); transition: 0.2s; 
+        white-space: nowrap; border: none; background: transparent;
+    }
+    .sw-option.active { background: white; color: var(--primary); box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+    .sw-option[data-cat="LOOSE"].active { color: #f59e0b; }
+
+    .date-pill {
+        background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); color: white; padding: 0 14px; height: 38px;
+        border-radius: 10px; display: flex; align-items: center; gap: 8px;
+        font-weight: 700; font-size: 11px; cursor: pointer; transition: 0.3s;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2); border: none;
+        position: relative; overflow: hidden;
+    }
+    #workDate { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+
+    .hamburger { display: none; background: none; border: none; padding: 8px; cursor: pointer; }
+    .hamburger div { width: 24px; height: 2px; background: var(--text-main); margin: 5px 0; transition: 0.3s; }
+
+    .content-section { display: none; padding: 20px; animation: fadeIn 0.3s ease; max-width: 800px; margin: 0 auto; }
+    .content-section.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .sidebar-overlay { 
+        display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+        background: rgba(0,0,0,0.5); z-index: 999; backdrop-filter: blur(2px);
+    }
+
+    footer { text-align:center; padding:30px; color:#94a3b8; font-size:11px; margin-left: 260px; }
+
+    @media (max-width: 1024px) {
+        .sidebar { transform: translateX(-100%); width: 280px; }
+        .sidebar.open { transform: translateX(0); }
+        .main-content { margin-left: 0; }
+        footer { margin-left: 0; }
+        .hamburger { display: block; }
+        .sidebar-overlay.show { display: block; }
+
+        .top-bar { padding: 0 10px; gap: 6px; }
+        .top-select { width: auto; max-width: 100px; }
+        .sw-option { padding: 0 10px; font-size: 10px; }
+        .date-pill span:first-child { display: block; } /* Show date */
+        .date-pill span:nth-child(2) { display: none; } /* Hide Icon on small */
+    }
+
+    /* --- MOBILE RESPONSIVENESS (SCREENS <= 600PX) --- */
+    @media (max-width: 768px) {
+        input, select, textarea {
+            font-size: 16px !important;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .top-bar {
+            height: auto !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            padding: 10px 12px !important;
+            gap: 10px !important;
+        }
+        .top-bar > div:first-child {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            width: 100% !important;
+        }
+        .top-controls {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr auto !important;
+            width: 100% !important;
+            gap: 6px !important;
+            align-items: center !important;
+        }
+        .top-select {
+            width: 100% !important;
+            max-width: none !important;
+            font-size: 12px !important;
+            height: 38px !important;
+            padding: 0 6px !important;
+        }
+        .date-pill {
+            width: auto !important;
+            padding: 0 8px !important;
+            font-weight: 700 !important;
+            font-size: 11px !important;
+            height: 38px !important;
+            justify-content: center !important;
+        }
+        .date-pill span:nth-child(2) {
+            display: inline !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .container {
+            padding: 8px !important;
+        }
+        .card {
+            padding: 16px !important;
+            margin-bottom: 12px !important;
+        }
+        .shop-header {
+            padding: 12px !important;
+        }
+        .shop-body {
+            padding: 12px !important;
+        }
+    }
+
+    /* --- RESPONSIVE GRID LAYOUTS --- */
+    .stats-grid-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+    .tally-grid-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+    .stock-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    @media (max-width: 500px) {
+        .stats-grid-container {
+            grid-template-columns: 1fr;
+        }
+        .tally-grid-container {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        .stock-form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    /* --- ROUTE TRACKER CARDS --- */
+    .rt-card {
+        background: white; border-radius: 14px; border: 1px solid var(--border);
+        margin-bottom: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        transition: all 0.2s;
+    }
+    .rt-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+    .rt-head-rt {
+        padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-bottom: 1px solid var(--border); cursor: pointer;
+    }
+    .rt-head-rt .rt-name { font-weight: 800; font-size: 14px; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+    .rt-head-rt .rt-name .rt-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .rt-head-rt .rt-summary { font-size: 11px; font-weight: 700; color: var(--text-muted); display: flex; gap: 12px; }
+    .rt-head-rt .rt-summary .rt-cash { color: var(--success); }
+    .rt-body-rt { display: none; padding: 0; }
+    .rt-card.rt-open .rt-body-rt { display: block; }
+    .rt-stat-grid {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border-bottom: 1px solid #f1f5f9;
+    }
+    .rt-stat-cell {
+        padding: 12px; text-align: center; border-right: 1px solid #f1f5f9;
+    }
+    .rt-stat-cell:last-child { border-right: none; }
+    .rt-stat-cell .rt-lbl { font-size: 9px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .rt-stat-cell .rt-val { font-size: 18px; font-weight: 800; }
+    .rt-detail-row {
+        display: flex; justify-content: space-between; padding: 8px 16px; font-size: 12px;
+        border-bottom: 1px solid #f8fafc;
+    }
+    .rt-detail-row:last-child { border-bottom: none; }
+    .rt-detail-row .rt-detail-lbl { color: var(--text-muted); font-weight: 600; }
+    .rt-detail-row .rt-detail-val { font-weight: 700; }
+    .rt-efficiency {
+        margin: 12px 16px; padding: 10px 16px; border-radius: 10px; display: flex; justify-content: space-between;
+        align-items: center; font-size: 12px; font-weight: 700;
+    }
+    .rt-efficiency.good { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .rt-efficiency.warn { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+    .rt-efficiency.bad { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+</style>
+<style id="auth-cloak">body { opacity: 0 !important; }</style>
+</head>
+
+<body>
+
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div class="app-wrapper">
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-brand">IyersRoute<span>.V3.1-fix</span></div>
+        <ul class="nav-list">
+             <li class="nav-item active" onclick="switchSection('overview')"><span class="nav-icon">📊</span> Overview</li>
+             <li class="nav-item" onclick="switchSection('stock')"><span class="nav-icon">🚚</span> Stock Operations</li>
+             <li class="nav-item" onclick="switchSection('members')"><span class="nav-icon">👤</span> Route Logs</li>
+             <li class="nav-item" onclick="switchSection('shops')"><span class="nav-icon">🛒</span> Shop Sales</li>
+             <li class="nav-item" onclick="switchSection('tally')"><span class="nav-icon">📝</span> Tally Sheet</li>
+             <li class="nav-item" onclick="window.logoutUser()" style="margin-top: auto; color: #ef4444;"><span class="nav-icon">🚪</span> Logout</li>
+        </ul>
+        <!-- Reset button removed -->
+    </nav>
+    <main class="main-content">
+        <div class="top-bar">
+             <div style="display:flex; align-items:center; gap:8px">
+                 <button class="hamburger" onclick="toggleSidebar()"><div></div><div></div><div></div></button>
+                 <div class="top-bar-switch category-switch">
+                    <button class="sw-option active" onclick="setCategory('PACKET')" data-cat="PACKET">📦 Packet</button>
+                    <button class="sw-option" onclick="setCategory('LOOSE')" data-cat="LOOSE">🥣 Loose</button>
+                 </div>
+             </div>
+             
+             <div class="top-controls">
+                 <select id="globalDriverSelect" class="top-select" onchange="setGlobalDriver(this.value)">
+                    <option value="">Select Route</option>
+                 </select>
+
+                 <select id="globalActualDriverSelect" class="top-select" onchange="setGlobalActualDriver(this.value)">
+                    <option value="">Select Driver</option>
+                 </select>
+            
+                 <div class="date-pill" onclick="openDatePicker()">
+                    <span id="dateDisplay">Loading...</span>
+                    <span>📅</span>
+                    <input type="date" id="workDate">
+                 </div>
+             </div>
+        </div>
+
+        <div class="container">
+           <section id="overview" class="content-section active">
+               <div style="padding:16px">
+        <!-- PRODUCT STATS GRID -->
+        <div class="stats-grid-container">
+            
+            <!-- DOSA CARD -->
+            <div style="background:linear-gradient(145deg, #312e81 0%, #1e1b4b 100%); border-radius:16px; padding:16px; color:#e0e7ff; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1); border:1px solid #4338ca; position:relative; overflow:hidden">
+                <div style="position:absolute; top:-10px; right:-10px; font-size:60px; opacity:0.05; font-weight:900">D</div>
+                <div style="font-size:12px; font-weight:900; color:#818cf8; margin-bottom:12px; letter-spacing:1px">DOSA</div>
+                
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px">
+                    <div>
+                        <div style="font-size:9px; opacity:0.6; font-weight:700">TAKEN</div>
+                        <div id="statD_Taken" style="font-size:18px; font-weight:700; color:white">0</div>
+                    </div>
+                    <div>
+                        <div style="font-size:9px; opacity:0.6; font-weight:700">SOLD</div>
+                        <div id="statD_Sold" style="font-size:18px; font-weight:700; color:#4ade80">0</div>
+                    </div>
+                    <div>
+                        <div style="font-size:9px; opacity:0.6; font-weight:700">CREDIT</div>
+                        <div id="statD_Credit" style="font-size:18px; font-weight:700; color:#fbbf24">0</div>
+                    </div>
+                    <div>
+                        <div style="font-size:9px; opacity:0.6; font-weight:700">FREE</div>
+                        <div id="statD_Free" style="font-size:18px; font-weight:700; color:#94a3b8">0</div>
+                    </div>
+                </div>
+
+                <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:8px; display:flex; justify-content:space-between; align-items:flex-end">
+                    <div>
+                        <div style="font-size:9px; color:#f87171; font-weight:700">DAMAGE</div>
+                        <div id="statD_Dmg" style="font-size:14px; font-weight:700; color:#f87171">0</div>
+                    </div>
+                    <div style="text-align:right">
+                        <div style="font-size:9px; color:#e0e7ff; font-weight:700; opacity:0.8">BALANCE</div>
+                        <div id="statD_Bal" style="font-size:16px; font-weight:700; color:white">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- APPAM CARD -->
+            <div style="background:linear-gradient(145deg, #7c2d12 0%, #451a03 100%); border-radius:16px; padding:16px; color:#ffedd5; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1); border:1px solid #9a3412; position:relative; overflow:hidden">
+                <div style="position:absolute; top:-10px; right:-10px; font-size:60px; opacity:0.05; font-weight:900">A</div>
+                <div style="font-size:12px; font-weight:900; color:#fdba74; margin-bottom:12px; letter-spacing:1px">APPAM</div>
+                
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px">
+                    <div>
+                        <div style="font-size:9px; opacity:0.6; font-weight:700">TAKEN</div>
+                        <div id="statA_Taken" style="font-size:18px; font-weight:700; color:white">0</div>
+                    </div>
+                    <div>
+                        <div style="font-size:9px; opacity:0.6; font-weight:700">SOLD</div>
+                        <div id="statA_Sold" style="font-size:18px; font-weight:700; color:#4ade80">0</div>
+                    </div>
+                    <div>
+                        <div style="font-size:9px; opacity:0.6; font-weight:700">CREDIT</div>
+                        <div id="statA_Credit" style="font-size:18px; font-weight:700; color:#fbbf24">0</div>
+                    </div>
+                    <div>
+                        <div style="font-size:9px; opacity:0.6; font-weight:700">FREE</div>
+                        <div id="statA_Free" style="font-size:18px; font-weight:700; color:#94a3b8">0</div>
+                    </div>
+                </div>
+
+                <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:8px; display:flex; justify-content:space-between; align-items:flex-end">
+                    <div>
+                        <div style="font-size:9px; color:#f87171; font-weight:700">DAMAGE</div>
+                        <div id="statA_Dmg" style="font-size:14px; font-weight:700; color:#f87171">0</div>
+                    </div>
+                    <div style="text-align:right">
+                        <div style="font-size:9px; color:#ffedd5; font-weight:700; opacity:0.8">BALANCE</div>
+                        <div id="statA_Bal" style="font-size:16px; font-weight:700; color:white">0</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- TOTAL CASH CARD -->
+        <div style="background:linear-gradient(135deg, #064e3b 0%, #065f46 100%); border-radius:16px; padding:16px; color:white; border:1px solid #059669; text-align:center; position:relative; overflow:hidden">
+            <div style="position:relative; z-index:1">
+                <div style="font-size:11px; font-weight:800; opacity:0.9; margin-bottom:4px; letter-spacing:1px; text-shadow:0 1px 2px rgba(0,0,0,0.3)">TOTAL CASH COLLECTED</div>
+                <div id="uiTotalCash" style="font-size:28px; font-weight:900; text-shadow:0 2px 4px rgba(0,0,0,0.3)">₹0</div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- PENDING CREDIT ALERT CARD -->
+    <div id="creditCollectionCard" class="card" style="display:none; border:1px solid #fbbf24; background:#fffbeb">
+        <div class="card-head" style="background:#fef3c7; color:#92400e; border-bottom:1px solid #fde68a">
+            <span>Pending Collections</span>
+            <span style="font-size:10px; background:#fbbf24; color:#fff; padding:2px 6px; border-radius:4px">COLLECT TODAY</span>
+        </div>
+        <div id="creditCollectionList" style="padding:12px"></div>
+    </div>
+
+    </section>
+
+    <section id="stock" class="content-section">
+    <div class="card">
+        <div class="card-head">
+            <span>1. Load Stock (Trip)</span>
+        </div>
+        <div class="card-body">
+            <div class="stock-form-grid">
+                <div class="input-group">
+                    <label>Hub / Source</label>
+                    <select id="activeHub">
+                        <option value="ALL">All Hubs</option>
+                        <option>Nettor</option>
+                        <option>Kannankulangara</option>
+                        <option>Vadakkekotta</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Route</label>
+                    <select id="tripDriver">
+                        <option value="">Select Route...</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Driver Name</label>
+                    <select id="tripActualDriver">
+                        <option value="">Select Driver...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="qty-group"><label style="color:var(--dosa-color)">Dosa Qty</label><input type="number" id="tripDosa" placeholder="0"></div>
+                <div class="qty-group"><label style="color:var(--appam-color)">Appam Qty</label><input type="number" id="tripAppam" placeholder="0"></div>
+            </div>
+            <button class="btn-add-trip" onclick="addTrip()">+ Add Trip</button>
+        </div>
+        <div id="tripLogContainer" style="border-top:1px solid #f1f5f9; display:none;">
+            <table>
+                <thead><tr><th>Hub</th><th>Route</th><th style="text-align:right">D</th><th style="text-align:right">A</th><th></th></tr></thead>
+                <tbody id="tripLogBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+
+
+    </section>
+
+    <section id="members" class="content-section">
+    <div class="card" style="border:none; background:transparent; box-shadow:none; margin-bottom:8px">
+        <div class="card-head" style="background:transparent; padding-left:0; color:var(--text-main); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px">
+            <div>
+                <span>3. Delivery Route Logs</span>
+                <span style="font-size:11px; display:block">Route-wise History</span>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center">
+                <!-- Date Range Selector -->
+                <div style="display:flex; align-items:center; gap:6px">
+                    <select id="routeLogDateRange" onchange="toggleRouteLogCustomDates(); renderDeliveryMemberLogs();" style="padding:6px 12px; border-radius:8px; border:1px solid var(--border); background:white; font-size:12px; font-weight:600; color:var(--text-main); cursor:pointer; outline:none">
+                        <option value="today">Today Only</option>
+                        <option value="custom">Custom Range</option>
+                    </select>
+                    <div id="routeLogCustomDateFields" style="display:none; align-items:center; gap:6px">
+                        <input type="date" id="routeLogStartDate" onchange="renderDeliveryMemberLogs()" style="padding:4px 8px; border-radius:6px; border:1px solid var(--border); font-size:11px; font-weight:600; outline:none">
+                        <span style="font-size:11px; color:#cbd5e1">—</span>
+                        <input type="date" id="routeLogEndDate" onchange="renderDeliveryMemberLogs()" style="padding:4px 8px; border-radius:6px; border:1px solid var(--border); font-size:11px; font-weight:600; outline:none">
+                    </div>
+                </div>
+
+                <!-- Party Filter -->
+                <select id="routeLogPartyFilter" onchange="renderDeliveryMemberLogs()" style="padding:6px 12px; border-radius:8px; border:1px solid var(--border); background:white; font-size:12px; font-weight:600; color:var(--text-main); cursor:pointer; outline:none; max-width:180px">
+                    <option value="all">All Parties</option>
+                </select>
+
+                <!-- Payment Type / Entry Type Selector -->
+                <select id="routeLogFilter" onchange="renderDeliveryMemberLogs()" style="padding:6px 12px; border-radius:8px; border:1px solid var(--border); background:white; font-size:12px; font-weight:600; color:var(--text-main); cursor:pointer; outline:none">
+                    <option value="all">All Entries</option>
+                    <option value="cash">Today's Cash Paid</option>
+                    <option value="gpay">GPay Collections</option>
+                    <option value="credit">Credit Sales</option>
+                    <option value="old_credit">Cash Received / Old Credit</option>
+                    <option value="free">Free</option>
+                    <option value="damage">Damage</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div id="deliveryMemberLogs"></div>
+
+    </section>
+
+    <section id="shops" class="content-section">
+    <div class="card" style="border:none; background:transparent; box-shadow:none; margin-bottom:12px; margin-top:24px">
+        <div class="card-head" style="background:transparent; padding-left:0; color:var(--text-main)">
+            <span>4. Shop Sales</span>
+            <span style="font-size:11px">Total Cash: <b id="uiShopSalesCash">₹0</b></span>
+        </div>
+        <!-- SEARCH BAR FOR 1000+ SHOPS -->
+        <div style="margin-top:8px; background:white; padding:12px; border-radius:12px; border:1px solid #e2e8f0; display:flex; align-items:center; gap:10px; box-shadow:0 1px 2px rgba(0,0,0,0.02)">
+            <span style="font-size:18px">🔍</span>
+            <input type="text" id="shopSearch" oninput="renderShops()" placeholder="Search from 1000+ shops..." style="flex:1; border:none; background:transparent; font-size:14px; font-weight:700; color:var(--text-main); outline:none">
+            <button onclick="document.getElementById('shopSearch').value=''; renderShops()" style="background:none; border:none; color:#cbd5e1; font-size:20px; font-weight:800; cursor:pointer">&times;</button>
+        </div>
+    </div>
+
+    <div id="shopsContainer"></div>
+
+    <!-- 5. TALLY & RECONCILIATION -->
+    </section>
+
+    <section id="tally" class="content-section">
+    <div id="tallySection" style="margin-top:24px">
+        <div class="card" style="border:none; background:transparent; box-shadow:none; margin-bottom:8px">
+            <div class="card-head" style="background:transparent; padding-left:0; color:var(--text-main)">
+                <span>5. Tally Section</span>
+                <span id="tallyDriverLabel" style="font-size:11px">Daily Reconciliation</span>
+            </div>
+        </div>
+        <div id="tallyContainer"></div>
+    </div>
+
+    <!-- 6. CREDIT GIVEN SHOPS LIST -->
+    <div id="creditGivenSection" style="margin-top:24px">
+        <div class="card" style="border:none; background:transparent; box-shadow:none; margin-bottom:8px">
+            <div class="card-head" style="background:transparent; padding-left:0; color:var(--text-main)">
+                <span>6. Credit given shops list</span>
+                <span style="font-size:11px">Credit / Free / Damage</span>
+            </div>
+        </div>
+        <div id="creditGivenShopsContainer"></div>
+    </div>
+
+    </section>
+
+</div> <!-- End Container -->
+</main>
+</div> <!-- End App Wrapper -->
+
+<!-- Debug console for real-time diagnostics -->
+<div id="debugLog" style="position:fixed; bottom:0; left:0; right:0; max-height:150px; overflow-y:auto; background:rgba(0,0,0,0.9); color:#ff6b6b; font-family:monospace; font-size:11px; padding:10px; z-index:99999; display:none; border-top:2px solid #ef4444; box-shadow: 0 -4px 10px rgba(0,0,0,0.3);">
+    <strong>Debug Console:</strong>
+    <button onclick="document.getElementById('debugLog').style.display='none'" style="float:right; background:#ef4444; color:white; border:none; padding:2px 8px; border-radius:4px; cursor:pointer;">Close</button>
+    <div id="debugLogContent" style="margin-top:5px; white-space:pre-wrap;"></div>
+</div>
+
+<script>
+    // Firebase Database Configuration
+    const db = window.db;
+
+    /* --- DEBUG CONSOLE LOGGER --- */
+    function showDebugError(msg) {
+        const el = document.getElementById('debugLog');
+        const content = document.getElementById('debugLogContent');
+        if (el && content) {
+            el.style.display = 'block';
+            content.innerText += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+        }
+    }
+    window.onerror = function(message, source, lineno, colno, error) {
+        showDebugError(`JS Error: ${message} at ${source}:${lineno}`);
+        return false;
+    };
+
+    /* --- CONFIG --- */
+    const DEFAULT_PRICES = { dosa: 45, appam: 55 };
+    const DB_KEY = "IYERS_ROUTE_V3_RESET";
+    const CLIENT_DB_KEY = "IYERS_CLIENT_DB_V2_RESET";
+    
+    let SHOP_LIST = [];
+    let SHOP_PRICES = {};
+
+    /* --- STATE --- */
+    let globalDB = {}; 
+    let currentData = {};
+    let selectedDate = "";
+    let currentCategory = "PACKET";
+    let selectedDriver = "";
+    let selectedActualDriver = "";
+    let activeSection = "overview";
+    let pastDuesCache = {};
+    let unsubscribeSnapshot = null; // Holds the active onSnapshot listener
+    let lastSaveTime = 0; // Throttles full re-renders during active typing
+    window.editState = { trip: null };
+
+    function getEmptyRouteCategory() {
+        return {
+            trips: [],
+            returns: [],
+            shops: {},
+            tally: { cashInHandMap: {}, denomsMap: {}, expenses: [], extraIncome: [] },
+            activeShops: []
+        };
+    }
+
+    function getEmptyRouteDay() {
+        return {
+            PACKET: getEmptyRouteCategory(),
+            LOOSE: getEmptyRouteCategory()
+        };
+    }
+
+    function isSingleCategoryRoutePayload(dayData) {
+        if (!dayData || typeof dayData !== 'object') return false;
+        return Array.isArray(dayData.trips) || Array.isArray(dayData.returns) || !!dayData.shops || !!dayData.tally;
+    }
+
+    function normalizeRouteDay(dayData, fallbackCategory = 'PACKET') {
+        const base = getEmptyRouteDay();
+        if (!dayData || typeof dayData !== 'object') return base;
+
+        if (isSingleCategoryRoutePayload(dayData)) {
+            base[fallbackCategory] = {
+                ...base[fallbackCategory],
+                trips: Array.isArray(dayData.trips) ? dayData.trips : [],
+                returns: Array.isArray(dayData.returns) ? dayData.returns : [],
+                shops: dayData.shops || {},
+                tally: {
+                    ...base[fallbackCategory].tally,
+                    ...(dayData.tally || {}),
+                    cashInHandMap: (dayData.tally && dayData.tally.cashInHandMap) || {},
+                    denomsMap: (dayData.tally && dayData.tally.denomsMap) || {},
+                    expenses: (dayData.tally && Array.isArray(dayData.tally.expenses)) ? dayData.tally.expenses : [],
+                    extraIncome: (dayData.tally && Array.isArray(dayData.tally.extraIncome)) ? dayData.tally.extraIncome : []
+                },
+                activeShops: Array.isArray(dayData.activeShops) ? dayData.activeShops : []
+            };
+            return base;
+        }
+
+        ['PACKET', 'LOOSE'].forEach(cat => {
+            const incoming = dayData[cat] || {};
+            base[cat] = {
+                ...base[cat],
+                ...incoming,
+                trips: Array.isArray(incoming.trips) ? incoming.trips : [],
+                returns: Array.isArray(incoming.returns) ? incoming.returns : [],
+                shops: incoming.shops || {},
+                tally: {
+                    ...base[cat].tally,
+                    ...(incoming.tally || {}),
+                    cashInHandMap: (incoming.tally && incoming.tally.cashInHandMap) || {},
+                    denomsMap: (incoming.tally && incoming.tally.denomsMap) || {},
+                    expenses: (incoming.tally && Array.isArray(incoming.tally.expenses)) ? incoming.tally.expenses : [],
+                    extraIncome: (incoming.tally && Array.isArray(incoming.tally.extraIncome)) ? incoming.tally.extraIncome : []
+                },
+                activeShops: Array.isArray(incoming.activeShops) ? incoming.activeShops : []
+            };
+        });
+
+        return base;
+    }
+
+    async function saveData() {
+        lastSaveTime = Date.now();
+        // 1. Update in-memory + localStorage cache immediately (fast / offline)
+        if (!globalDB[selectedDate]) globalDB[selectedDate] = {};
+        globalDB[selectedDate][currentCategory] = currentData;
+        localStorage.setItem(DB_KEY, JSON.stringify(globalDB));
+
+        try {
+            // 2. Save Trips
+            const myTrips = currentData.trips || [];
+            if (myTrips.length > 0) {
+                const tripPayloads = myTrips.map(t => ({
+                    id: t.id,
+                    date: selectedDate,
+                    category: currentCategory,
+                    hub: t.hub,
+                    driver: t.driver,
+                    actual_driver: t.actualDriver,
+                    dosa: Number(t.dosa) || 0,
+                    appam: Number(t.appam) || 0
+                }));
+                const { error: tErr } = await db.from('trips').upsert(tripPayloads);
+                if (tErr) throw tErr;
+            }
+
+            // 3. Save Shop Sales
+            const salePayloads = [];
+            if (currentData.shops) {
+                Object.keys(currentData.shops).forEach(shopName => {
+                    const s = currentData.shops[shopName];
+                    if (s && (s.driver === selectedDriver || hasShopEntryActivity(s))) {
+                        salePayloads.push({
+                            id: `${selectedDate}-${currentCategory}-${shopName}`,
+                            date: selectedDate,
+                            category: currentCategory,
+                            shop_name: shopName,
+                            driver: s.driver || selectedDriver,
+                            dosa_sale: Number(s.dosa?.sale) || 0,
+                            dosa_cr: Number(s.dosa?.cr) || 0,
+                            dosa_dmg: Number(s.dosa?.dmg) || 0,
+                            dosa_free: Number(s.dosa?.free) || 0,
+                            appam_sale: Number(s.appam?.sale) || 0,
+                            appam_cr: Number(s.appam?.cr) || 0,
+                            appam_dmg: Number(s.appam?.dmg) || 0,
+                            appam_free: Number(s.appam?.free) || 0,
+                            cash_received: Number(s.cashReceived) || 0,
+                            gpay_received: Number(s.gpayReceived) || 0,
+                            anand_received: Number(s.anandReceived) || 0,
+                            today_cash_paid: Number(s.todayCashPaid) || 0,
+                            today_gpay_paid: Number(s.todayGpayPaid) || 0,
+                            old_credit_cash: Number(s.oldCreditCash) || 0,
+                            old_credit_gpay: Number(s.oldCreditGpay) || 0,
+                            gpay_ref: s.gpayRef || ''
+                        });
+                    }
+                });
+            }
+
+            if (salePayloads.length > 0) {
+                const { error: sErr } = await db.from('shop_sales').upsert(salePayloads);
+                if (sErr) throw sErr;
+            }
+
+            // 4. Save Tally (if a route is selected)
+            if (selectedDriver) {
+                const cashInHand = currentData.tally?.cashInHandMap?.[selectedDriver] || 0;
+                const denoms = currentData.tally?.denomsMap?.[selectedDriver] || null;
+                const expenses = (currentData.tally?.expenses || []).filter(e => e.driver === selectedDriver);
+                const extraIncome = (currentData.tally?.extraIncome || []).filter(e => e.driver === selectedDriver);
+
+                const tallyPayload = {
+                    id: `${selectedDate}-${currentCategory}-${selectedDriver}`,
+                    date: selectedDate,
+                    category: currentCategory,
+                    driver: selectedDriver,
+                    cash_in_hand: cashInHand,
+                    denoms: denoms,
+                    expenses: expenses,
+                    extra_income: extraIncome
+                };
+
+                const { error: talErr } = await db.from('tally').upsert(tallyPayload);
+                if (talErr) throw talErr;
+            }
+        } catch (err) {
+            console.error("Database save error:", err);
+            showDebugError("Database Save Error: " + err.message);
+            alert("⚠️ Database Save Failed!\n\nError: " + err.message);
+        }
+    }
+
+    /* ---- LOAD A DATE FROM DATABASE (with localStorage cache for instant display) ---- */
+    let routeDaySubscription = null;
+
+    async function loadDateFromFirestore(date, shouldSubscribe = true) {
+        // Unsubscribe previous listener if switching dates
+        if (shouldSubscribe && routeDaySubscription) {
+            db.removeChannel(routeDaySubscription);
+            routeDaySubscription = null;
+        }
+
+        // Step 1: Try to show locally cached data immediately
+        const raw = localStorage.getItem(DB_KEY);
+        if (raw) {
+            try { globalDB = JSON.parse(raw); } catch(e) { globalDB = {}; }
+        }
+        if (!globalDB[date]) globalDB[date] = getEmptyRouteDay();
+        globalDB[date] = normalizeRouteDay(globalDB[date], currentCategory);
+        currentData = globalDB[date][currentCategory];
+        initShopDataForDate(date);
+        
+        await hydrateRouteHistoryForBalances(date);
+        pastDuesCache = {};
+        SHOP_LIST.forEach(shop => {
+            const pBal = getPendingBalance(shop, date, 'PACKET');
+            const lBal = getPendingBalance(shop, date, 'LOOSE');
+            if (pBal !== 0 || lBal !== 0) {
+                pastDuesCache[shop] = { PACKET: pBal, LOOSE: lBal };
+            }
+        });
+        fullRender();
+
+        // Step 2: Fetch current date records from relational tables
+        try {
+            const dayData = getEmptyRouteDay();
+
+            // 1. Fetch Trips
+            const { data: trips } = await db.from('trips').select('*').eq('date', date);
+            if (trips) {
+                trips.forEach(t => {
+                    const cat = t.category;
+                    if (dayData[cat]) {
+                        dayData[cat].trips.push({
+                            id: t.id,
+                            hub: t.hub,
+                            driver: t.driver,
+                            actualDriver: t.actual_driver,
+                            dosa: Number(t.dosa) || 0,
+                            appam: Number(t.appam) || 0
+                        });
+                    }
+                });
+            }
+
+            // 2. Fetch Shop Sales
+            const { data: sales } = await db.from('shop_sales').select('*').eq('date', date);
+            if (sales) {
+                sales.forEach(s => {
+                    const cat = s.category;
+                    const shop = s.shop_name;
+                    if (dayData[cat]) {
+                        dayData[cat].shops[shop] = {
+                            driver: s.driver,
+                            dosa: {
+                                sale: s.dosa_sale === 0 ? '' : s.dosa_sale,
+                                cr: s.dosa_cr === 0 ? '' : s.dosa_cr,
+                                dmg: s.dosa_dmg === 0 ? '' : s.dosa_dmg,
+                                free: s.dosa_free === 0 ? '' : s.dosa_free
+                            },
+                            appam: {
+                                sale: s.appam_sale === 0 ? '' : s.appam_sale,
+                                cr: s.appam_cr === 0 ? '' : s.appam_cr,
+                                dmg: s.appam_dmg === 0 ? '' : s.appam_dmg,
+                                free: s.appam_free === 0 ? '' : s.appam_free
+                            },
+                            cashReceived: s.cash_received === 0 ? '' : s.cash_received,
+                            gpayReceived: s.gpay_received === 0 ? '' : s.gpay_received,
+                            anandReceived: s.anand_received === 0 ? '' : s.anand_received,
+                            todayCashPaid: s.today_cash_paid === 0 ? '' : s.today_cash_paid,
+                            todayGpayPaid: s.today_gpay_paid === 0 ? '' : s.today_gpay_paid,
+                            oldCreditCash: s.old_credit_cash === 0 ? '' : s.old_credit_cash,
+                            oldCreditGpay: s.old_credit_gpay === 0 ? '' : s.old_credit_gpay,
+                            gpayRef: s.gpay_ref || ''
+                        };
+                        if (!dayData[cat].activeShops.includes(shop)) {
+                            dayData[cat].activeShops.push(shop);
+                        }
+                    }
+                });
+            }
+
+            // 3. Fetch Tally Records
+            const { data: tallies } = await db.from('tally').select('*').eq('date', date);
+            if (tallies) {
+                tallies.forEach(t => {
+                    const cat = t.category;
+                    const drv = t.driver;
+                    if (dayData[cat]) {
+                        dayData[cat].tally.cashInHandMap[drv] = Number(t.cash_in_hand) || 0;
+                        if (t.denoms) {
+                            dayData[cat].tally.denomsMap[drv] = t.denoms;
+                        }
+                        if (t.expenses && Array.isArray(t.expenses)) {
+                            t.expenses.forEach(exp => {
+                                if (!dayData[cat].tally.expenses.some(e => e.id === exp.id)) {
+                                    dayData[cat].tally.expenses.push(exp);
+                                }
+                            });
+                        }
+                        if (t.extra_income && Array.isArray(t.extra_income)) {
+                            t.extra_income.forEach(inc => {
+                                if (!dayData[cat].tally.extraIncome.some(e => e.id === inc.id)) {
+                                    dayData[cat].tally.extraIncome.push(inc);
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+
+            globalDB[date] = normalizeRouteDay(dayData, currentCategory);
+            localStorage.setItem(DB_KEY, JSON.stringify(globalDB));
+            currentData = globalDB[date][currentCategory];
+            initShopDataForDate(date);
+
+            pastDuesCache = {};
+            SHOP_LIST.forEach(shop => {
+                const pBal = getPendingBalance(shop, date, 'PACKET');
+                const lBal = getPendingBalance(shop, date, 'LOOSE');
+                if (pBal !== 0 || lBal !== 0) {
+                    pastDuesCache[shop] = { PACKET: pBal, LOOSE: lBal };
+                }
+            });
+            fullRender();
+        } catch (err) {
+            console.error("Database load error:", err);
+        }
+
+        // Step 3: Listen to Database Realtime changes for this date
+        if (shouldSubscribe) {
+            const reloadDate = async (d) => {
+                const now = Date.now();
+                const recentlyTyped = (now - lastSaveTime) < 2000;
+                if (recentlyTyped) {
+                    console.log("Sync skipped (Active Typing)");
+                    return;
+                }
+                await loadDateFromFirestore(d, false);
+            };
+
+            routeDaySubscription = db.channel(`route-day-${date}`)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'trips', filter: `date=eq.${date}` }, () => reloadDate(date))
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'shop_sales', filter: `date=eq.${date}` }, () => reloadDate(date))
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'tally', filter: `date=eq.${date}` }, () => reloadDate(date))
+                .subscribe();
+        }
+    }
+
+    /* ---- LOAD CLIENTS FROM DATABASE (with real-time sync) ---- */
+    let clientsSubscription = null;
+
+    function loadClients() {
+        // Step 1: Initial load from localStorage for speed
+        const rawClient = localStorage.getItem(CLIENT_DB_KEY);
+        if (rawClient) {
+            try {
+                const clients = JSON.parse(rawClient);
+                updateClientState(clients);
+            } catch(e) {}
+        }
+
+        // Step 2: Fetch once from Database
+        db.from('clients').select('*').then(({ data }) => {
+            if (data) {
+                updateClientState(data);
+                localStorage.setItem(CLIENT_DB_KEY, JSON.stringify(data));
+            }
+        });
+
+        // Step 3: Real-time listener
+        if (clientsSubscription) db.removeChannel(clientsSubscription);
+        clientsSubscription = db.channel('clients-sync')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, payload => {
+                db.from('clients').select('*').then(({ data }) => {
+                    if (data) {
+                        updateClientState(data);
+                        localStorage.setItem(CLIENT_DB_KEY, JSON.stringify(data));
+                    }
+                });
+            })
+            .subscribe();
+    }
+
+    function updateClientState(clients) {
+        SHOP_LIST = clients.map(c => typeof c === 'string' ? c : c.name);
+        SHOP_PRICES = {};
+        clients.forEach(c => {
+            const name = typeof c === 'string' ? c : c.name;
+            SHOP_PRICES[name] = { 
+                pd: Number(c.pd) || DEFAULT_PRICES.dosa, 
+                pa: Number(c.pa) || DEFAULT_PRICES.appam 
+            };
+        });
+        if (selectedDate) {
+            initShopDataForDate(selectedDate);
+            fullRender();
+        }
+    }
+
+    function getPrice(shop, type) {
+        if (SHOP_PRICES[shop]) {
+            return type === 'dosa' ? SHOP_PRICES[shop].pd : SHOP_PRICES[shop].pa;
+        }
+        return DEFAULT_PRICES[type];
+    }
+
+    function generateId() {
+        return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    }
+
+    function getEmptyShopEntry(driver = "") {
+        return {
+            driver,
+            dosa: { sale: '', cr: '', dmg: '', free: '' },
+            appam: { sale: '', cr: '', dmg: '', free: '' },
+            cashReceived: '',
+            gpayReceived: '',
+            anandReceived: '',
+            todayCashPaid: '',
+            todayGpayPaid: '',
+            oldCreditCash: '',
+            oldCreditGpay: '',
+            gpayRef: ''
+        };
+    }
+
+    function normalizeShopEntry(entry = {}) {
+        return {
+            ...getEmptyShopEntry(entry.driver || ""),
+            ...entry,
+            dosa: { ...getEmptyShopEntry().dosa, ...(entry.dosa || {}) },
+            appam: { ...getEmptyShopEntry().appam, ...(entry.appam || {}) }
+        };
+    }
+
+    function initShopDataForDate(date) {
+        if (!globalDB[date]) globalDB[date] = getEmptyRouteDay();
+        globalDB[date] = normalizeRouteDay(globalDB[date], currentCategory);
+
+        // Sync tally between categories if one is populated and the other is empty
+        const packetTally = globalDB[date]['PACKET']?.tally || {};
+        const looseTally = globalDB[date]['LOOSE']?.tally || {};
+        
+        const isPacketTallyEmpty = !packetTally.expenses?.length && !packetTally.extraIncome?.length && Object.keys(packetTally.cashInHandMap || {}).length === 0;
+        const isLooseTallyEmpty = !looseTally.expenses?.length && !looseTally.extraIncome?.length && Object.keys(looseTally.cashInHandMap || {}).length === 0;
+        
+        if (!isPacketTallyEmpty && isLooseTallyEmpty) {
+            globalDB[date]['LOOSE'].tally = JSON.parse(JSON.stringify(packetTally));
+        } else if (isPacketTallyEmpty && !isLooseTallyEmpty) {
+            globalDB[date]['PACKET'].tally = JSON.parse(JSON.stringify(looseTally));
+        }
+
+        ['PACKET', 'LOOSE'].forEach(cat => {
+            const catData = globalDB[date][cat];
+            if (!catData.shops) catData.shops = {};
+            if (!catData.activeShops) catData.activeShops = [];
+            if (!catData.tally) catData.tally = { cashInHandMap: {}, denomsMap: {}, expenses: [], extraIncome: [] };
+            if (!catData.tally.cashInHandMap) catData.tally.cashInHandMap = {};
+            if (!catData.tally.denomsMap) catData.tally.denomsMap = {};
+            if (!Array.isArray(catData.tally.expenses)) catData.tally.expenses = [];
+            if (!Array.isArray(catData.tally.extraIncome)) catData.tally.extraIncome = [];
+
+            SHOP_LIST.forEach(shop => {
+                catData.shops[shop] = normalizeShopEntry(catData.shops[shop]);
+            });
+        });
+
+        currentData = globalDB[date][currentCategory];
+    }
+
+    function getShopDayValue(shop, dayData, cat = currentCategory) {
+        let sold = 0;
+        let paid = 0;
+        const cats = cat === 'BOTH' ? ['PACKET', 'LOOSE'] : [cat];
+        cats.forEach(c => {
+            const s = dayData?.[c]?.shops?.[shop];
+            if (!s) return;
+            const pD = getPrice(shop, 'dosa');
+            const pA = getPrice(shop, 'appam');
+            sold += ((Number(s.dosa?.sale) || 0) + (Number(s.dosa?.cr) || 0)) * pD;
+            sold += ((Number(s.appam?.sale) || 0) + (Number(s.appam?.cr) || 0)) * pA;
+            paid += (Number(s.cashReceived) || 0) + (Number(s.gpayReceived) || 0) + (Number(s.anandReceived) || 0);
+        });
+        return { sold, paid };
+    }
+
+    function getPaymentTotal(shopData) {
+        return (Number(shopData?.cashReceived) || 0) + (Number(shopData?.gpayReceived) || 0) + (Number(shopData?.anandReceived) || 0);
+    }
+
+    function hasShopEntryActivity(shopData) {
+        return !!(
+            shopData?.dosa?.sale || shopData?.dosa?.cr ||
+            shopData?.appam?.sale || shopData?.appam?.cr ||
+            shopData?.cashReceived || shopData?.gpayReceived || shopData?.anandReceived
+        );
+    }
+
+    function getPendingBalance(shop, beforeDate, cat = currentCategory) {
+        if (beforeDate === selectedDate && pastDuesCache[shop]) {
+            if (cat === 'BOTH') {
+                return (pastDuesCache[shop].PACKET || 0) + (pastDuesCache[shop].LOOSE || 0);
+            }
+            return pastDuesCache[shop][cat] || 0;
+        }
+
+        if (cat === 'BOTH') {
+            return getPendingBalance(shop, beforeDate, 'PACKET') + getPendingBalance(shop, beforeDate, 'LOOSE');
+        }
+
+        return Object.keys(globalDB)
+            .filter(date => date < beforeDate)
+            .sort()
+            .reduce((total, date) => {
+                const day = getShopDayValue(shop, globalDB[date], cat);
+                return total + day.sold - day.paid;
+            }, 0);
+    }
+
+    function getDuesBreakdown(shop, uptoDate, cat = currentCategory) {
+        return Object.keys(globalDB)
+            .filter(date => date <= uptoDate)
+            .sort()
+            .map(date => {
+                const dayData = globalDB[date] || {};
+                let dosa = 0, appam = 0, value = 0, cash = 0;
+                const cats = cat === 'BOTH' ? ['PACKET', 'LOOSE'] : [cat];
+                cats.forEach(c => {
+                    const s = dayData?.[c]?.shops?.[shop];
+                    if (!s) return;
+                    const dQty = (Number(s.dosa?.sale) || 0) + (Number(s.dosa?.cr) || 0);
+                    const aQty = (Number(s.appam?.sale) || 0) + (Number(s.appam?.cr) || 0);
+                    dosa += dQty;
+                    appam += aQty;
+                    value += dQty * getPrice(shop, 'dosa') + aQty * getPrice(shop, 'appam');
+                    cash += (Number(s.cashReceived) || 0) + (Number(s.gpayReceived) || 0) + (Number(s.anandReceived) || 0);
+                });
+                return { date, dosa, appam, value, cash };
+            })
+            .filter(row => row.value > 0 || row.cash > 0);
+    }
+
+    function getLastDriver(shop, uptoDate) {
+        return Object.keys(globalDB)
+            .filter(date => date <= uptoDate)
+            .sort()
+            .reverse()
+            .reduce((found, date) => {
+                if (found) return found;
+                const dayData = globalDB[date] || {};
+                for (const cat of ['PACKET', 'LOOSE']) {
+                    const driver = dayData?.[cat]?.shops?.[shop]?.driver;
+                    if (driver) return driver;
+                }
+                return "";
+            }, "");
+    }
+
+    async function hydrateRouteHistoryForBalances(activeDate) {
+        try {
+            const { data: sales, error } = await db.from('shop_sales')
+                .select('shop_name, date, category, driver, dosa_sale, dosa_cr, appam_sale, appam_cr, cash_received, gpay_received, anand_received')
+                .lt('date', activeDate);
+            if (error) throw error;
+
+            if (sales) {
+                sales.forEach(s => {
+                    const date = s.date;
+                    const cat = s.category;
+                    const shop = s.shop_name;
+                    
+                    if (!globalDB[date]) globalDB[date] = getEmptyRouteDay();
+                    if (!globalDB[date][cat].shops[shop]) {
+                        globalDB[date][cat].shops[shop] = getEmptyShopEntry();
+                    }
+                    
+                    const entry = globalDB[date][cat].shops[shop];
+                    entry.driver = s.driver;
+                    entry.dosa.sale = s.dosa_sale;
+                    entry.dosa.cr = s.dosa_cr;
+                    entry.appam.sale = s.appam_sale;
+                    entry.appam.cr = s.appam_cr;
+                    entry.cashReceived = s.cash_received;
+                    entry.gpayReceived = s.gpay_received;
+                    entry.anandReceived = s.anand_received;
+                });
+            }
+
+            localStorage.setItem(DB_KEY, JSON.stringify(globalDB));
+        } catch (err) {
+            console.error("Route history load error:", err);
+        }
+    }
+
+    let routeMasterSubscription = null;
+    function loadRouteMaster() {
+        // Initial load
+        db.from('routes').select('name').then(({ data }) => {
+            if (data) {
+                updateRouteMasterUI(data);
+            }
+        });
+
+        // Realtime subscription
+        if (routeMasterSubscription) db.removeChannel(routeMasterSubscription);
+        routeMasterSubscription = db.channel('routeMaster-sync')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'routes' }, payload => {
+                db.from('routes').select('name').then(({ data }) => {
+                    if (data) {
+                        updateRouteMasterUI(data);
+                    }
+                });
+            })
+            .subscribe();
+    }
+
+    function updateRouteMasterUI(list) {
+        const routes = list.map(s => s.name).sort();
+        
+        const gds = document.getElementById('globalDriverSelect');
+        const tds = document.getElementById('tripDriver');
+        
+        if(gds) {
+            const current = gds.value || selectedDriver;
+            gds.innerHTML = '<option value="">Select Route</option>' + routes.map(d => `<option>${d}</option>`).join("");
+            gds.value = current;
+        }
+        if(tds) {
+            const current = tds.value || selectedDriver;
+            tds.innerHTML = '<option value="">Select Route...</option>' + routes.map(d => `<option>${d}</option>`).join("");
+            tds.value = current;
+        }
+        renderDeliveryMemberLogs();
+    }
+
+    let staffSubscription = null;
+    function loadStaff() {
+        // Initial load
+        db.from('staff').select('*').then(({ data }) => {
+            if (data) {
+                updateStaffUI(data);
+            }
+        });
+
+        // Realtime subscription
+        if (staffSubscription) db.removeChannel(staffSubscription);
+        staffSubscription = db.channel('staff-sync')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'staff' }, payload => {
+                db.from('staff').select('*').then(({ data }) => {
+                    if (data) {
+                        updateStaffUI(data);
+                    }
+                });
+            })
+            .subscribe();
+    }
+
+    function updateStaffUI(list) {
+        const drivers = list.filter(s => s.type === "DELIVERY").map(s => s.name).sort();
+        
+        const gads = document.getElementById('globalActualDriverSelect');
+        const tads = document.getElementById('tripActualDriver');
+        
+        let driverToLock = selectedActualDriver;
+        let isDriverRole = false;
+        try {
+            const authUser = JSON.parse(localStorage.getItem('iyers_auth_user'));
+            if (authUser && authUser.role === 'driver') {
+                if (authUser.name && authUser.name.toLowerCase() !== 'driver') {
+                    driverToLock = authUser.name;
+                    isDriverRole = true;
+                }
+            }
+        } catch(e) {}
+
+        if(gads) {
+            const current = isDriverRole ? driverToLock : (gads.value || driverToLock);
+            gads.innerHTML = '<option value="">Select Driver</option>' + drivers.map(d => `<option>${d}</option>`).join("");
+            gads.value = current;
+            if (isDriverRole) {
+                gads.disabled = true;
+                selectedActualDriver = driverToLock;
+                localStorage.setItem('IYERS_PERSIST_DRIVER', driverToLock);
+            } else {
+                gads.disabled = false;
+            }
+        }
+        if(tads) {
+            const current = isDriverRole ? driverToLock : (tads.value || driverToLock);
+            tads.innerHTML = '<option value="">Select Driver...</option>' + drivers.map(d => `<option>${d}</option>`).join("");
+            tads.value = current;
+            if (isDriverRole) {
+                tads.disabled = true;
+            } else {
+                tads.disabled = false;
+            }
+        }
+    }
+
+    // resetAllData function removed 
+
+
+    /* ---- WINDOW ONLOAD ---- */
+    window.onload = async () => {
+        requireAuth('driver', async (user) => {
+            console.log("IyersRoute V3.1 Initializing...");
+            
+            try {
+                // Priority 1: Always start on TODAY's date on every page load/refresh.
+                // The user can navigate to other dates using the calendar, but refresh
+                // always snaps back to the current working day.
+                const today = new Date().toISOString().split('T')[0];
+                selectedDate = today;
+                
+                // Priority 2: Restore Selection Persistence (Route & Driver)
+                let isDriverRole = false;
+                let driverToLock = "";
+                try {
+                    const authUser = JSON.parse(localStorage.getItem('iyers_auth_user'));
+                    if (authUser && authUser.role === 'driver') {
+                        if (authUser.name && authUser.name.toLowerCase() !== 'driver') {
+                            driverToLock = authUser.name;
+                            isDriverRole = true;
+                        }
+                    }
+                } catch(e) {}
+
+                const savedRoute = localStorage.getItem('IYERS_PERSIST_ROUTE');
+                if (savedRoute) selectedDriver = savedRoute;
+                
+                if (isDriverRole) {
+                    selectedActualDriver = driverToLock;
+                    localStorage.setItem('IYERS_PERSIST_DRIVER', driverToLock);
+                } else {
+                    const savedDriver = localStorage.getItem('IYERS_PERSIST_DRIVER');
+                    if (savedDriver) selectedActualDriver = savedDriver;
+                }
+
+                // Priority 3: Initialize basic structure so buttons don't crash
+                if (!globalDB[selectedDate]) globalDB[selectedDate] = getEmptyRouteDay();
+                globalDB[selectedDate] = normalizeRouteDay(globalDB[selectedDate], currentCategory);
+                currentData = globalDB[selectedDate][currentCategory];
+                
+                // Apply listeners and bootup
+                loadClients();
+                loadRouteMaster();
+                loadStaff();
+                
+                const dInput = document.getElementById('workDate');
+                if(dInput) dInput.value = selectedDate;
+                const ds = document.getElementById('dateDisplay');
+                if(ds) ds.innerText = new Date(selectedDate).toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+
+                if(dInput) {
+                    dInput.addEventListener('change', (e) => {
+                        selectedDate = e.target.value;
+                        document.getElementById('dateDisplay').innerText = new Date(selectedDate).toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+                        loadDateFromFirestore(selectedDate);
+                    });
+                }
+                
+                document.querySelectorAll('.sw-option').forEach(btn => btn.classList.remove('active'));
+                const cBtn = document.querySelector(`.sw-option[data-cat="${currentCategory}"]`);
+                if(cBtn) cBtn.classList.add('active');
+
+                // Set section
+                switchSection('overview');
+
+                loadDateFromFirestore(selectedDate);
+                console.log("Initialization complete!");
+            } catch(err) {
+                console.error("Init err:", err);
+            }
+        });
+    };
+
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.querySelector('.sidebar-overlay').classList.toggle('show');
+    }
+
+    function switchSection(section) {
+        activeSection = section;
+        document.querySelectorAll('.content-section').forEach(el => el.classList.remove('active'));
+        const sEl = document.getElementById(section);
+        if(sEl) sEl.classList.add('active');
+        
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        const navEvent = document.querySelector(`.nav-item[onclick="switchSection('${section}')"]`);
+        if(navEvent) navEvent.classList.add('active');
+        
+        const isMobile = window.innerWidth <= 1024;
+        if(isMobile) {
+            document.getElementById('sidebar').classList.remove('open');
+            document.querySelector('.sidebar-overlay').classList.remove('show');
+        }
+
+        if(section === 'overview') renderStats();
+        if(section === 'shops') renderShops();
+        if(section === 'stock' || section === 'members') renderLogs();
+        if(section === 'members') renderDeliveryMemberLogs();
+        if(section === 'tally') renderTally();
+    }
+
+    function setCategory(cat) {
+        currentCategory = cat;
+        document.querySelectorAll('.sw-option').forEach(el => el.classList.remove('active'));
+        const btn = document.querySelector(`.sw-option[data-cat="${cat}"]`);
+        if(btn) btn.classList.add('active');
+
+        if (!globalDB[selectedDate]) globalDB[selectedDate] = getEmptyRouteDay();
+        globalDB[selectedDate] = normalizeRouteDay(globalDB[selectedDate], currentCategory);
+        currentData = globalDB[selectedDate][currentCategory];
+        
+        fullRender();
+    }
+
+    function updateGlobalType(cat, el) { setCategory(cat); }
+
+    function setGlobalDriver(driver) {
+        selectedDriver = driver;
+        localStorage.setItem('IYERS_PERSIST_ROUTE', driver);
+        
+        const sel = document.getElementById('globalDriverSelect');
+        if (sel && sel.value !== driver) sel.value = driver;
+
+        // Sync with Trip Form
+        const tripDriver = document.getElementById('tripDriver');
+        if (tripDriver) tripDriver.value = driver;
+
+        renderStats();
+        renderShops();
+        renderLogs();
+        renderDeliveryMemberLogs();
+        renderCreditAlerts();
+    }
+
+    function setGlobalActualDriver(driver) {
+        selectedActualDriver = driver;
+        localStorage.setItem('IYERS_PERSIST_DRIVER', driver);
+        
+        const sel = document.getElementById('globalActualDriverSelect');
+        if (sel && sel.value !== driver) sel.value = driver;
+        
+        const tripSel = document.getElementById('tripActualDriver');
+        if (tripSel) tripSel.value = driver;
+
+        refreshDynamicUI();
+    }
+
+    function openDatePicker() {
+        const dInput = document.getElementById('workDate');
+        if(dInput) dInput.showPicker();
+    }
+
+    function updateShopValue(shop, type, field, val) {
+        if(!selectedDriver) {
+            alert("⚠️ PLEASE SELECT A ROUTE FIRST!\n\nPlease select a route from the dropdown above before entering sales data.");
+            renderShops();
+            return;
+        }
+        if(!currentData.activeShops) currentData.activeShops = [];
+        if(!currentData.activeShops.includes(shop)) currentData.activeShops.push(shop);
+
+        if(!currentData.shops[shop]) currentData.shops[shop] = { dosa:{}, appam:{} };
+        if(!currentData.shops[shop][type]) currentData.shops[shop][type] = {};
+        
+        currentData.shops[shop][type][field] = val;
+        if(selectedDriver) currentData.shops[shop].driver = selectedDriver;
+
+        saveData();
+        updateShopRowUI(shop); 
+        
+        const idx = SHOP_LIST.indexOf(shop);
+        if(idx !== -1) updateShopBalance(shop, idx);
+
+        refreshDynamicUI(); 
+    }
+
+    function updateShopData(shop, type, field, val) {
+        updateShopValue(shop, type, field, val);
+    }
+
+    function resetTripForm() {
+        window.editState.trip = null;
+        const tripDosa = document.getElementById('tripDosa');
+        const tripAppam = document.getElementById('tripAppam');
+        const tripDriver = document.getElementById('tripDriver');
+        const tripActualDriver = document.getElementById('tripActualDriver');
+        const addBtn = document.querySelector('.btn-add-trip');
+        if (tripDosa) tripDosa.value = "";
+        if (tripAppam) tripAppam.value = "";
+        if (tripDriver) tripDriver.value = selectedDriver || "";
+        if (tripActualDriver) tripActualDriver.value = selectedActualDriver || "";
+        if (addBtn) addBtn.innerText = "+ Add Trip";
+    }
+
+    function addTrip() {
+        const hub = document.getElementById('activeHub')?.value || "";
+        const driver = document.getElementById('tripDriver')?.value || selectedDriver;
+        const actualDriver = document.getElementById('tripActualDriver')?.value || selectedActualDriver;
+        const dosa = Number(document.getElementById('tripDosa')?.value) || 0;
+        const appam = Number(document.getElementById('tripAppam')?.value) || 0;
+
+        if (!driver) return alert("Please select a route before adding stock.");
+        if (!actualDriver) return alert("Please select a driver before adding stock.");
+        if (!hub || hub === "ALL") return alert("Please select the source hub before adding stock.");
+        if (dosa <= 0 && appam <= 0) return alert("Enter Dosa or Appam quantity.");
+
+        if (!currentData.trips) currentData.trips = [];
+        const existingId = window.editState.trip;
+        if (existingId) {
+            const idx = currentData.trips.findIndex(t => t.id === existingId);
+            if (idx !== -1) currentData.trips[idx] = { ...currentData.trips[idx], hub, driver, actualDriver, dosa, appam };
+        } else {
+            currentData.trips.push({ id: generateId(), hub, driver, actualDriver, dosa, appam });
+        }
+
+        if (driver) setGlobalDriver(driver);
+        saveData();
+        resetTripForm();
+        renderLogs();
+        refreshDynamicUI();
+    }
+
+    function editTrip(id) {
+        const trip = (currentData.trips || []).find(t => t.id === id);
+        if (!trip) return;
+        window.editState.trip = id;
+        const activeHub = document.getElementById('activeHub');
+        const tripDriver = document.getElementById('tripDriver');
+        const tripActualDriver = document.getElementById('tripActualDriver');
+        if (activeHub) activeHub.value = trip.hub || "Nettor";
+        if (tripDriver) tripDriver.value = trip.driver || "";
+        if (tripActualDriver) tripActualDriver.value = trip.actualDriver || "";
+        document.getElementById('tripDosa').value = trip.dosa || "";
+        document.getElementById('tripAppam').value = trip.appam || "";
+        const addBtn = document.querySelector('.btn-add-trip');
+        if (addBtn) addBtn.innerText = "Update Trip";
+    }
+
+    async function deleteTrip(id) {
+        if (!confirm("Delete this trip?")) return;
+        currentData.trips = (currentData.trips || []).filter(t => t.id !== id);
+        try {
+            await db.from('trips').delete().eq('id', id);
+        } catch (e) {
+            console.error("Failed to delete trip from DB:", e);
+        }
+        saveData();
+        resetTripForm();
+        renderLogs();
+        refreshDynamicUI();
+    }
+    
+    function updateCashReceived(shop, val, idx) {
+        if(!selectedDriver) {
+            alert("⚠️ PLEASE SELECT A ROUTE FIRST!\n\nPlease select a route from the dropdown above before entering sales data.");
+            renderShops();
+            return;
+        }
+        if(!currentData.activeShops) currentData.activeShops = [];
+        if(!currentData.activeShops.includes(shop)) currentData.activeShops.push(shop);
+
+        currentData.shops[shop] = normalizeShopEntry(currentData.shops[shop]);
+        currentData.shops[shop].cashReceived = val;
+        if(selectedDriver) currentData.shops[shop].driver = selectedDriver;
+
+        saveData();
+        updateShopRowUI(shop); 
+        updateShopBalance(shop, idx);
+        refreshDynamicUI();
+    }
+
+    function updateGpayReceived(shop, val, idx) {
+        if(!selectedDriver) {
+            alert("⚠️ PLEASE SELECT A ROUTE FIRST!\n\nPlease select a route from the dropdown above before entering sales data.");
+            renderShops();
+            return;
+        }
+        if(!currentData.activeShops) currentData.activeShops = [];
+        if(!currentData.activeShops.includes(shop)) currentData.activeShops.push(shop);
+
+        currentData.shops[shop] = normalizeShopEntry(currentData.shops[shop]);
+        currentData.shops[shop].gpayReceived = val;
+        if(selectedDriver) currentData.shops[shop].driver = selectedDriver;
+
+        saveData();
+        updateShopRowUI(shop); 
+        updateShopBalance(shop, idx);
+        refreshDynamicUI();
+    }
+
+    function updateAnandReceived(shop, val, idx) {
+        if(!selectedDriver) {
+            alert("⚠️ PLEASE SELECT A ROUTE FIRST!\n\nPlease select a route from the dropdown above before entering sales data.");
+            renderShops();
+            return;
+        }
+        if(!currentData.activeShops) currentData.activeShops = [];
+        if(!currentData.activeShops.includes(shop)) currentData.activeShops.push(shop);
+
+        currentData.shops[shop] = normalizeShopEntry(currentData.shops[shop]);
+        currentData.shops[shop].anandReceived = val;
+        if(selectedDriver) currentData.shops[shop].driver = selectedDriver;
+
+        saveData();
+        updateShopRowUI(shop); 
+        updateShopBalance(shop, idx);
+        refreshDynamicUI();
+    }
+
+    function updateTodayCashPaid(shop, val, idx) {
+        if(!selectedDriver) {
+            alert("⚠️ PLEASE SELECT A ROUTE FIRST!\n\nPlease select a route from the dropdown above before entering sales data.");
+            renderShops();
+            return;
+        }
+        if(!currentData.activeShops) currentData.activeShops = [];
+        if(!currentData.activeShops.includes(shop)) currentData.activeShops.push(shop);
+
+        currentData.shops[shop] = normalizeShopEntry(currentData.shops[shop]);
+        currentData.shops[shop].todayCashPaid = val;
+        // Recalculate cashReceived
+        currentData.shops[shop].cashReceived = (Number(currentData.shops[shop].todayCashPaid) || 0) + (Number(currentData.shops[shop].oldCreditCash) || 0) || "";
+        if(selectedDriver) currentData.shops[shop].driver = selectedDriver;
+
+        saveData();
+        updateShopRowUI(shop); 
+        updateShopBalance(shop, idx);
+        refreshDynamicUI();
+    }
+
+    function updateTodayGpayPaid(shop, val, idx) {
+        if(!selectedDriver) {
+            alert("⚠️ PLEASE SELECT A ROUTE FIRST!\n\nPlease select a route from the dropdown above before entering sales data.");
+            renderShops();
+            return;
+        }
+        if(!currentData.activeShops) currentData.activeShops = [];
+        if(!currentData.activeShops.includes(shop)) currentData.activeShops.push(shop);
+
+        currentData.shops[shop] = normalizeShopEntry(currentData.shops[shop]);
+        currentData.shops[shop].todayGpayPaid = val;
+        // Recalculate gpayReceived
+        currentData.shops[shop].gpayReceived = (Number(currentData.shops[shop].todayGpayPaid) || 0) + (Number(currentData.shops[shop].oldCreditGpay) || 0) || "";
+        if(selectedDriver) currentData.shops[shop].driver = selectedDriver;
+
+        saveData();
+        updateShopRowUI(shop); 
+        updateShopBalance(shop, idx);
+        refreshDynamicUI();
+    }
+
+    function updateOldCreditCash(shop, val, idx) {
+        if(!selectedDriver) {
+            alert("⚠️ PLEASE SELECT A ROUTE FIRST!\n\nPlease select a route from the dropdown above before entering sales data.");
+            renderShops();
+            return;
+        }
+        if(!currentData.activeShops) currentData.activeShops = [];
+        if(!currentData.activeShops.includes(shop)) currentData.activeShops.push(shop);
+
+        currentData.shops[shop] = normalizeShopEntry(currentData.shops[shop]);
+        currentData.shops[shop].oldCreditCash = val;
+        // Recalculate cashReceived
+        currentData.shops[shop].cashReceived = (Number(currentData.shops[shop].todayCashPaid) || 0) + (Number(currentData.shops[shop].oldCreditCash) || 0) || "";
+        if(selectedDriver) currentData.shops[shop].driver = selectedDriver;
+
+        saveData();
+        updateShopRowUI(shop); 
+        updateShopBalance(shop, idx);
+        refreshDynamicUI();
+    }
+
+    function updateOldCreditGpay(shop, val, idx) {
+        if(!selectedDriver) {
+            alert("⚠️ PLEASE SELECT A ROUTE FIRST!\n\nPlease select a route from the dropdown above before entering sales data.");
+            renderShops();
+            return;
+        }
+        if(!currentData.activeShops) currentData.activeShops = [];
+        if(!currentData.activeShops.includes(shop)) currentData.activeShops.push(shop);
+
+        currentData.shops[shop] = normalizeShopEntry(currentData.shops[shop]);
+        currentData.shops[shop].oldCreditGpay = val;
+        // Recalculate gpayReceived
+        currentData.shops[shop].gpayReceived = (Number(currentData.shops[shop].todayGpayPaid) || 0) + (Number(currentData.shops[shop].oldCreditGpay) || 0) || "";
+        if(selectedDriver) currentData.shops[shop].driver = selectedDriver;
+
+        saveData();
+        updateShopRowUI(shop); 
+        updateShopBalance(shop, idx);
+        refreshDynamicUI();
+    }
+
+    function updateGpayRef(shop, val, idx) {
+        if(!selectedDriver) {
+            alert("⚠️ PLEASE SELECT A ROUTE FIRST!\n\nPlease select a route from the dropdown above before entering sales data.");
+            renderShops();
+            return;
+        }
+        if(!currentData.activeShops) currentData.activeShops = [];
+        if(!currentData.activeShops.includes(shop)) currentData.activeShops.push(shop);
+
+        currentData.shops[shop] = normalizeShopEntry(currentData.shops[shop]);
+        currentData.shops[shop].gpayRef = val;
+        if(selectedDriver) currentData.shops[shop].driver = selectedDriver;
+
+        saveData();
+        updateShopRowUI(shop); 
+        updateShopBalance(shop, idx);
+        refreshDynamicUI();
+    }
+    
+    function updateShopBalance(shop, idx) {
+        const prevDues = getPendingBalance(shop, selectedDate, currentCategory);
+        let todayBillValue = 0;
+        let paid = 0;
+        const pD = getPrice(shop, 'dosa');
+        const pA = getPrice(shop, 'appam');
+
+        const dayData = globalDB[selectedDate] || {};
+        const s = dayData?.[currentCategory]?.shops?.[shop];
+        if (s) {
+            todayBillValue += ((Number(s.dosa?.sale) || 0) + (Number(s.dosa?.cr) || 0)) * pD;
+            todayBillValue += ((Number(s.appam?.sale) || 0) + (Number(s.appam?.cr) || 0)) * pA;
+            paid += getPaymentTotal(s);
+        }
+
+        const balance = prevDues + todayBillValue - paid;
+        const balEl = document.getElementById(`balance-${idx}`);
+        const totEl = document.getElementById(`total-${idx}`);
+        const prevEl = document.getElementById(`prev-${idx}`);
+
+        if (prevEl) prevEl.innerText = `₹${prevDues}`;
+        if (totEl) totEl.innerText = `₹${todayBillValue}`;
+        if (balEl) {
+            balEl.innerText = `₹${balance}`;
+            balEl.style.color = balance > 0 ? '#ef4444' : (balance < 0 ? '#f59e0b' : '#10b981');
+        }
+    }
+
+    function updateShopRowUI(shop) {
+        const idx = SHOP_LIST.indexOf(shop);
+        let totalPaidToday = 0;
+        let hasActivity = false;
+
+        const s = currentData.shops[shop];
+        if (s) {
+            totalPaidToday = getPaymentTotal(s);
+            if (hasShopEntryActivity(s)) hasActivity = true;
+        }
+
+        const card = document.getElementById(`card-shop-${idx}`);
+        const statusDiv = document.getElementById(`status-shop-${idx}`);
+        if (!card || !statusDiv) return;
+
+        if (hasActivity) {
+            card.classList.add('completed');
+            statusDiv.innerHTML = `<span>₹${totalPaidToday}</span><div class="status-dot"></div>`;
+        } else {
+            card.classList.remove('completed');
+            statusDiv.innerHTML = `Pending<div class="status-dot"></div>`;
+        }
+    }
+
+    function toggleShop(index) { document.getElementById(`card-shop-${index}`).classList.toggle('expanded'); }
+    function toggleCreditDetail(idx) {
+        const el = document.getElementById(`credit-detail-${idx}`);
+        if(el) {
+            const isHidden = el.style.display === 'none';
+            el.style.display = isHidden ? 'block' : 'none';
+            const icon = document.getElementById(`credit-icon-${idx}`);
+            if(icon) icon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+    }
+    function switchTab(index, type) {
+        const pD = document.getElementById(`panel-dosa-${index}`), pA = document.getElementById(`panel-appam-${index}`);
+        const tD = document.getElementById(`tab-dosa-${index}`), tA = document.getElementById(`tab-appam-${index}`);
+        if(type === 'dosa') { pD.classList.add('active'); pA.classList.remove('active'); tD.classList.add('active-dosa'); tA.classList.remove('active-appam'); } 
+        else { pD.classList.remove('active'); pA.classList.add('active'); tD.classList.remove('active-dosa'); tA.classList.add('active-appam'); }
+    }
+
+
+    /* --- RENDER --- */
+    function fullRender() {
+        renderStats();
+        renderLogs();
+        renderDeliveryMemberLogs();
+        renderCreditAlerts();
+        renderShops();
+        renderTally();
+    }
+
+    // PRODUCTION-GRADE REFRESH (Fast, doesn't lose focus)
+    function refreshDynamicUI() {
+        renderStats();
+        renderDeliveryMemberLogs();
+        renderCreditAlerts();
+        renderTally(); // Update the main Tally Sheet UI in real-time
+        
+        // Update the tiny Shop Sales cash summary too
+        const tallyStats = calculateTallyStats();
+        const el = document.getElementById('uiShopSalesCash');
+        if(el) el.innerText = `₹${tallyStats.totalCashCollected}`;
+        
+        // Trigger animation on key totals to show "it's working"
+        const targets = ['statD_Taken', 'statD_Sold', 'statD_Credit', 'statA_Taken', 'statA_Sold', 'statA_Credit', 'uiTotalCash', 'uiNetExpected'];
+        targets.forEach(id => {
+            const el = document.getElementById(id);
+            if(el) {
+                el.classList.remove('val-updated');
+                void el.offsetWidth; // Trigger reflow
+                el.classList.add('val-updated');
+            }
+        });
+    }
+
+    function renderCreditAlerts() {
+        const container = document.getElementById('creditCollectionList');
+        const card = document.getElementById('creditCollectionCard');
+        if(!container || !card) return;
+        
+        container.innerHTML = "";
+        let found = false;
+        let grandTotalDues = 0;
+        const dayData = globalDB[selectedDate] || {};
+        
+        // 1. Get ALL unique shops that have activity today or past dues for currentCategory
+        const allShopsSet = new Set();
+        SHOP_LIST.forEach(shop => {
+            if (pastDuesCache[shop] && pastDuesCache[shop][currentCategory] !== 0) {
+                allShopsSet.add(shop);
+            }
+        });
+        if (dayData[currentCategory] && dayData[currentCategory].activeShops) {
+            dayData[currentCategory].activeShops.forEach(s => allShopsSet.add(s));
+        }
+        
+        const sortedShops = Array.from(allShopsSet).sort();
+        let shopIdx = 0;
+
+        sortedShops.forEach(shop => {
+            const pastDues = getPendingBalance(shop, selectedDate, currentCategory);
+            let todaySaleVal = 0;
+            let todayPaid = 0;
+            let todayCreditOnly = 0;
+            let currentDriverName = null;
+
+            const sd = dayData[currentCategory]?.shops?.[shop];
+            if (sd) {
+                const pD = getPrice(shop, 'dosa');
+                const pA = getPrice(shop, 'appam');
+                
+                todaySaleVal = ((Number(sd.dosa?.sale)||0) + (Number(sd.dosa?.cr)||0)) * pD + 
+                              ((Number(sd.appam?.sale)||0) + (Number(sd.appam?.cr)||0)) * pA;
+                todayPaid = getPaymentTotal(sd);
+                todayCreditOnly = (Number(sd.dosa?.cr)||0) * pD + (Number(sd.appam?.cr)||0) * pA;
+                if(sd.driver) currentDriverName = sd.driver;
+            }
+
+            const totalOutstanding = pastDues + todaySaleVal - todayPaid;
+
+            // Display logic: Show if they owe money OR if they got credit today
+            if(totalOutstanding > 0.1 || todayCreditOnly > 0.1) {
+                // Driver Filter: Only show if it belongs to the selected route
+                const ownerDriver = currentDriverName || getLastDriver(shop, selectedDate);
+                if(selectedDriver && ownerDriver && ownerDriver !== selectedDriver) return;
+
+                found = true;
+                grandTotalDues += Math.max(0, totalOutstanding);
+                shopIdx++;
+
+                const creditTag = todayCreditOnly > 0 ? `<div style="font-size:10px; color:#ef4444; margin-top:4px; font-weight:800; background:#fee2e2; padding:2px 6px; border-radius:4px; display:inline-block">NEW CREDIT: ₹${todayCreditOnly}</div>` : "";
+                const breakdown = getDuesBreakdown(shop, selectedDate, currentCategory);
+                const breakdownHTML = breakdown.map(b => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-bottom:1px solid #fef3c7; font-size:11px">
+                        <div style="display:flex; flex-direction:column">
+                            <span style="color:#64748b; font-weight:700">${new Date(b.date).toLocaleDateString('en-GB', {day:'numeric', month:'short'})}</span>
+                            ${b.cash > 0 ? `<span style="font-size:9px; color:var(--success); font-weight:700">Paid ₹${b.cash}</span>` : ''}
+                        </div>
+                        <div style="text-align:center"><span style="color:var(--dosa-color); font-weight:800">${b.dosa}D</span><span style="color:var(--appam-color); font-weight:800; margin-left:4px">${b.appam}A</span></div>
+                        <span style="color:#0f172a; font-weight:800">₹${b.value}</span>
+                    </div>`).join("");
+
+                container.innerHTML += `
+                <div style="margin-bottom:8px; background:#fff; border-radius:12px; border:1px solid #fde68a; overflow:hidden; box-shadow:0 2px 4px rgba(180, 83, 9, 0.05)">
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; cursor:pointer" onclick="toggleCreditDetail(${shopIdx})">
+                        <div style="flex:1">
+                            <div style="font-weight:700; color:#0f172a; font-size:13px; display:flex; align-items:center; gap:8px">
+                                ${shop}
+                                <span id="credit-icon-${shopIdx}" style="font-size:9px; transition:0.3s; color:#92400e">▼</span>
+                            </div>
+                            ${creditTag}
+                        </div>
+                        <span style="color:#b45309; font-weight:800; font-size:15px">₹${Math.max(0, totalOutstanding).toFixed(0)}</span>
+                    </div>
+                    <div id="credit-detail-${shopIdx}" style="display:none; background:#fffdf5; border-top:1px solid #fef3c7">
+                        <div style="padding:4px 0">
+                            <div style="padding:6px 12px; background:#fef3c7; font-size:9px; font-weight:800; color:#92400e; display:flex; justify-content:space-between"><span>DATE / PAYMENT</span><span>PACKETS</span><span>Billed Amt</span></div>
+                            ${breakdownHTML || '<div style="padding:15px; text-align:center; color:#94a3b8; font-size:11px">No detailed records found</div>'}
+                        </div>
+                    </div>
+                </div>`;
+            }
+        });
+        
+        if(found) {
+            container.innerHTML += `<div style="margin-top:12px; padding-top:10px; border-top:2px dashed #fde68a; display:flex; justify-content:space-between; align-items:center">
+                <span style="font-size:11px; font-weight:800; color:#92400e">GRAND TOTAL</span>
+                <span style="font-size:18px; font-weight:900; color:#b45309">₹${grandTotalDues.toFixed(0)}</span>
+            </div>`;
+        }
+        card.style.display = found ? 'block' : 'none';
+        const headSpan = card.querySelector('.card-head span:first-child');
+        if(headSpan) {
+            const catLabel = currentCategory === 'PACKET' ? 'Packet' : 'Loose';
+            headSpan.innerText = selectedDriver ? `Pending Collections (${selectedDriver} - ${catLabel})` : `Pending Collections (${catLabel})`;
+        }
+    }
+    
+    function renderStats() {
+        const stats = calculateTallyStats();
+        
+        const updateEl = (id, val) => {
+            const el = document.getElementById(id);
+            if(el) el.innerText = val;
+        };
+
+        // Aggregated DOSA CARD UPDATES
+        updateEl('statD_Taken', stats.dosa.load);
+        updateEl('statD_Sold', stats.dosa.sold);
+        updateEl('statD_Credit', stats.dosa.credit);
+        updateEl('statD_Free', stats.dosa.free);
+        updateEl('statD_Dmg', stats.dosa.dmg);
+        updateEl('statD_Bal', stats.dosa.balance);
+
+        // Aggregated APPAM CARD UPDATES
+        updateEl('statA_Taken', stats.appam.load);
+        updateEl('statA_Sold', stats.appam.sold);
+        updateEl('statA_Credit', stats.appam.credit);
+        updateEl('statA_Free', stats.appam.free);
+        updateEl('statA_Dmg', stats.appam.dmg);
+        updateEl('statA_Bal', stats.appam.balance);
+
+        // TOTAL CASH COLLECTOR (Aggregated actual cash received)
+        updateEl('uiTotalCash', `₹${stats.totalCashCollected}`);
+
+    }
+
+
+    function renderLogs() {
+         const activeHubSelect = document.getElementById('activeHub');
+         if (!activeHubSelect) return;
+         const filterHub = activeHubSelect.value;
+         const filterDriver = selectedDriver;
+         const fTrips = currentData.trips.filter(t => {
+             const hubMatch = filterHub === "ALL" || t.hub === filterHub;
+             const driverMatch = !filterDriver || t.driver === filterDriver;
+             return hubMatch && driverMatch;
+         });
+
+         const tLog = document.getElementById('tripLogBody'); 
+         if (!tLog) return;
+         tLog.innerHTML = "";
+         if (fTrips.length > 0) { 
+             document.getElementById('tripLogContainer').style.display = "block"; 
+             fTrips.forEach(t => tLog.innerHTML += `<tr><td><span class="badge" style="background:#f1f5f9;color:#64748b">${t.hub.slice(0,3)}</span></td><td>${t.driver}<br><small style="color:var(--text-muted)">${t.actualDriver || 'N/A'}</small></td><td style="text-align:right">${t.dosa}</td><td style="text-align:right">${t.appam}</td><td style="text-align:right"><button class="btn-del" style="background:#e0f2fe; color:#0369a1; margin-right:4px" onclick="editTrip('${t.id}')">✎</button><button class="btn-del" onclick="deleteTrip('${t.id}')">×</button></td></tr>`); 
+         } else { 
+             document.getElementById('tripLogContainer').style.display = "none"; 
+         }
+     }
+    function toggleRouteLogCustomDates() {
+        const range = document.getElementById('routeLogDateRange').value;
+        const customFields = document.getElementById('routeLogCustomDateFields');
+        if (customFields) {
+            if (range === 'custom') {
+                customFields.style.display = 'flex';
+                if (!document.getElementById('routeLogStartDate').value) {
+                    const today = new Date().toISOString().split('T')[0];
+                    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                    document.getElementById('routeLogStartDate').value = sevenDaysAgo;
+                    document.getElementById('routeLogEndDate').value = today;
+                }
+            } else {
+                customFields.style.display = 'none';
+            }
+        }
+    }
+
+    function renderDeliveryMemberLogs() {
+        const container = document.getElementById('deliveryMemberLogs');
+        if(!container) return;
+
+        // 1. Preserve Expanded State
+        const openStates = {};
+        const gds = document.getElementById('globalDriverSelect');
+        const DRIVERS = gds ? Array.from(gds.options).map(o => o.value).filter(v => v !== "") : ["Udhayamperoor", "Kakkanad", "Kadavanthra", "Nettor"];
+        DRIVERS.forEach(d => {
+           const safeName = d.replace(/\s+/g, '');
+           const body = document.getElementById(`member-log-${safeName}`);
+           if (body && body.parentElement.classList.contains('expanded')) {
+               openStates[d] = true;
+           }
+        });
+
+        // 2. Populate Party Filter Dropdown if not already done
+        const partyFilter = document.getElementById('routeLogPartyFilter');
+        if (partyFilter && partyFilter.options.length <= 1) {
+            const sortedShops = [...SHOP_LIST].sort();
+            sortedShops.forEach(shop => {
+                partyFilter.add(new Option(shop, shop));
+            });
+        }
+
+        container.innerHTML = "";
+        
+        // Use active date(s) based on range selection
+        const rangeType = document.getElementById('routeLogDateRange')?.value || 'today';
+        let dates = [selectedDate];
+        if (rangeType === 'custom') {
+            const start = document.getElementById('routeLogStartDate')?.value;
+            const end = document.getElementById('routeLogEndDate')?.value;
+            if (start && end) {
+                dates = Object.keys(globalDB).filter(d => d >= start && d <= end).sort();
+            }
+        }
+
+        // FILTER: If a global driver is selected, only show them. Otherwise show all.
+        const driversToShow = selectedDriver ? [selectedDriver] : DRIVERS;
+
+        driversToShow.forEach((driver) => {
+            let dSold = 0, aSold = 0, tripCount = 0;
+            const activeHubsSet = new Set();
+            
+            // Gather trips and hubs across selected dates
+            dates.forEach(d => {
+                const dayData = globalDB[d] || {};
+                if (dayData[currentCategory] && dayData[currentCategory].trips) {
+                    dayData[currentCategory].trips.forEach(t => {
+                        if (t.driver === driver) {
+                            dSold += Number(t.dosa) || 0;
+                            aSold += Number(t.appam) || 0;
+                            tripCount++;
+                            if (t.hub) activeHubsSet.add(t.hub);
+                        }
+                    });
+                }
+            });
+            
+            const activeHubs = Array.from(activeHubsSet);
+            const shopActivity = {}; // { shopName: { dosa:0, appam:0, cash:0, ... } }
+
+            const routeLogFilter = document.getElementById('routeLogFilter')?.value || 'all';
+            const selectedParty = document.getElementById('routeLogPartyFilter')?.value || 'all';
+
+            // Gather active shops in entry order across dates for currentCategory
+            const activeShopsCombined = [];
+
+            dates.forEach(d => {
+                const dayData = globalDB[d] || {};
+                const catObj = dayData[currentCategory];
+                if (catObj) {
+                    const arr = catObj.activeShops || [];
+                    arr.forEach(s => {
+                        if (!activeShopsCombined.includes(s)) activeShopsCombined.push(s);
+                    });
+
+                    if (catObj.shops) {
+                        const catShops = catObj.shops;
+                        Object.keys(catShops).forEach(shop => {
+                            const sd = catShops[shop];
+                            if(!sd || sd.driver !== driver) return;
+                            
+                            const tc = sd.todayCashPaid !== undefined ? (Number(sd.todayCashPaid) || 0) : (Number(sd.cashReceived) || 0);
+                            const tg = sd.todayGpayPaid !== undefined ? (Number(sd.todayGpayPaid) || 0) : (Number(sd.gpayReceived) || 0);
+                            const oc = Number(sd.oldCreditCash) || 0;
+                            const og = Number(sd.oldCreditGpay) || 0;
+                            
+                            const hasCr = (Number(sd.dosa?.cr)||0) > 0 || (Number(sd.appam?.cr)||0) > 0;
+                            const hasDmg = (Number(sd.dosa?.dmg)||0) > 0 || (Number(sd.appam?.dmg)||0) > 0;
+                            const hasFree = (Number(sd.dosa?.free)||0) > 0 || (Number(sd.appam?.free)||0) > 0;
+                            const hasGpay = tg > 0 || og > 0;
+                            const hasOldCr = oc > 0 || og > 0;
+                            const hasCash = tc > 0;
+                            
+                            if (routeLogFilter === 'credit' && !hasCr) return;
+                            if (routeLogFilter === 'damage' && !hasDmg) return;
+                            if (routeLogFilter === 'free' && !hasFree) return;
+                            if (routeLogFilter === 'gpay' && !hasGpay) return;
+                            if (routeLogFilter === 'old_credit' && !hasOldCr) return;
+                            if (routeLogFilter === 'cash' && !hasCash) return;
+                            
+                            if (routeLogFilter === 'all') {
+                                const hasShopActivity = hasShopEntryActivity(sd) || hasDmg || hasFree;
+                                if (!hasShopActivity) return;
+                            }
+
+                            if (selectedParty !== 'all' && shop !== selectedParty) return;
+
+                            if(!shopActivity[shop]) {
+                                shopActivity[shop] = { 
+                                    dosa:0, appam:0, cash:0, 
+                                    dosaDmg:0, appamDmg:0, dosaFree:0, appamFree:0,
+                                    todayCash: 0, todayGpay: 0, oldCash: 0, oldGpay: 0,
+                                    gpayRef: "", anand: 0, datesList: new Set()
+                                };
+                            }
+                            
+                            shopActivity[shop].dosa += (Number(sd.dosa?.sale)||0) + (Number(sd.dosa?.cr)||0);
+                            shopActivity[shop].appam += (Number(sd.appam?.sale)||0) + (Number(sd.appam?.cr)||0);
+                            shopActivity[shop].cash += getPaymentTotal(sd);
+                            shopActivity[shop].dosaDmg += (Number(sd.dosa?.dmg)||0);
+                            shopActivity[shop].appamDmg += (Number(sd.appam?.dmg)||0);
+                            shopActivity[shop].dosaFree += (Number(sd.dosa?.free)||0);
+                            shopActivity[shop].appamFree += (Number(sd.appam?.free)||0);
+                            
+                            shopActivity[shop].todayCash += tc;
+                            shopActivity[shop].todayGpay += tg;
+                            shopActivity[shop].oldCash += oc;
+                            shopActivity[shop].oldGpay += og;
+                            shopActivity[shop].anand += (Number(sd.anandReceived) || 0);
+                            shopActivity[shop].datesList.add(d);
+                            
+                            if (sd.gpayRef) {
+                                shopActivity[shop].gpayRef = (shopActivity[shop].gpayRef ? shopActivity[shop].gpayRef + ", " : "") + sd.gpayRef;
+                            }
+                        });
+                    }
+                }
+            });
+
+            // Filter activeShopsCombined to only include those in shopActivity
+            const orderedShops = activeShopsCombined.filter(shop => shopActivity[shop] !== undefined);
+
+            // Fallback: Append any remaining shops from shopActivity that were not in activeShopsCombined
+            Object.keys(shopActivity).forEach(shop => {
+                if (!orderedShops.includes(shop)) {
+                    orderedShops.push(shop);
+                }
+            });
+
+            let shopDetailsHTMLStr = "";
+            orderedShops.forEach(shop => {
+               const act = shopActivity[shop];
+               shopDetailsHTMLStr += `
+               <div style="background:white; padding:12px; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:10px; box-shadow:0 1px 2px rgba(0,0,0,0.02)">
+                   <div style="font-weight:800; color:var(--primary); font-size:13px; margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:baseline">
+                       <span>${shop} ${act.datesList.size > 1 ? `<span style="font-size:9px; color:#64748b; font-weight:normal">(${act.datesList.size} days)</span>` : ''}</span>
+                       <div style="text-align:right">
+                           <span style="font-size:10px; color:#10b981; font-weight:800">Total Paid: ₹${act.cash}</span>
+                       </div>
+                   </div>
+                   <div style="font-size:11px; margin-bottom:8px">
+                       <span style="color:#64748b">Total Sale:</span> <b style="color:#0f172a">${act.dosa}D, ${act.appam}A</b> | 
+                       <span style="color:#ef4444; font-weight:700">DA:</span> <b style="color:#ef4444">${act.dosaDmg}D, ${act.appamDmg}A</b> | 
+                       <span style="color:#3b82f6; font-weight:700">FR:</span> <b style="color:#3b82f6">${act.dosaFree}D, ${act.appamFree}A</b>
+                   </div>
+                   <!-- Payment details breakdown -->
+                   <div style="font-size:10px; color:#475569; background:#f8fafc; padding:8px; border-radius:8px; display:flex; flex-direction:column; gap:4px; border:1px solid #e2e8f0">
+                       <div style="display:flex; justify-content:space-between">
+                           <span><b>Today's Sales Cash:</b> ₹${act.todayCash}</span>
+                           <span><b>GPay:</b> ₹${act.todayGpay}</span>
+                       </div>
+                       <div style="display:flex; justify-content:space-between; padding-top:2px; border-top:1px dashed #e2e8f0">
+                           <span><b>Old Credit Cash:</b> ₹${act.oldCash}</span>
+                           <span><b>GPay:</b> ₹${act.oldGpay}</span>
+                       </div>
+                       ${act.gpayRef ? `<div style="padding-top:2px; border-top:1px dashed #e2e8f0"><b>GPay Ref/Txn ID:</b> <span style="font-family:monospace; background:#eef2ff; padding:2px 4px; border-radius:4px; color:#4f46e5">${act.gpayRef}</span></div>` : ''}
+                       ${act.anand ? `<div style="padding-top:2px; border-top:1px dashed #e2e8f0"><b>Anand Received:</b> ₹${act.anand}</div>` : ''}
+                   </div>
+               </div>`;
+            });
+
+            const hasData = tripCount > 0 || Object.keys(shopActivity).length > 0;
+            const safeDriverName = driver.replace(/\s+/g, '');
+            const isOpen = openStates[driver]; // Restore State
+            
+            container.innerHTML += `
+            <div class="card ${isOpen ? 'expanded' : ''}" style="margin-bottom:12px">
+                <div class="shop-header" onclick="toggleMemberLog('${safeDriverName}')" style="background:#f8fafc">
+                    <div class="shop-name" style="color:${hasData ? 'var(--primary)' : 'var(--text-muted)'}">
+                        ${driver}
+                    </div>
+                    <div class="shop-status">
+                        <span style="font-size:11px">${tripCount} loads / ${Object.keys(shopActivity).length} served</span>
+                        <div class="status-dot" style="background:${hasData ? 'var(--success)' : '#cbd5e1'}"></div>
+                    </div>
+                </div>
+                <div class="shop-body" id="member-log-${safeDriverName}">
+                    ${hasData ? `
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px">
+                            <div style="background:white; padding:10px; border-radius:12px; border:1px solid #e2e8f0; text-align:center; box-shadow:0 2px 4px rgba(0,0,0,0.02)">
+                                <div style="font-size:10px; color:#64748b; font-weight:700; text-transform:uppercase; letter-spacing:0.5px">Dosa Loaded</div>
+                                <div style="font-size:20px; font-weight:800; color:var(--dosa-color)">${dSold}</div>
+                            </div>
+                            <div style="background:white; padding:10px; border-radius:12px; border:1px solid #e2e8f0; text-align:center; box-shadow:0 2px 4px rgba(0,0,0,0.02)">
+                                <div style="font-size:10px; color:#64748b; font-weight:700; text-transform:uppercase; letter-spacing:0.5px">Appam Loaded</div>
+                                <div style="font-size:20px; font-weight:800; color:var(--appam-color)">${aSold}</div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom:12px">
+                            <div style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:8px; text-transform:uppercase">Delivery History</div>
+                            ${shopDetailsHTMLStr || `<div style="text-align:center; padding:12px; color:#94a3b8; font-size:12px; background:white; border-radius:8px; border:1px dashed #cbd5e1">No matching activity found</div>`}
+                        </div>
+                        
+                        <div style="font-size:11px; color:#64748b">Hubs Assigned: <b>${activeHubs.join(", ") || 'General'}</b></div>
+                    ` : `
+                        <div style="padding:40px; text-align:center; color:#cbd5e1; font-size:12px; border:1px dashed #e2e8f0; border-radius:12px">
+                           No records found for this route and selection
+                       </div>
+                    `}
+                </div>
+            </div>`;
+        });
+    }
+     
+     function toggleMemberLog(index) {
+         const el = document.getElementById(`member-log-${index}`);
+         if(el && el.parentElement) el.parentElement.classList.toggle('expanded');
+     }
+    function renderShops() {
+        const container = document.getElementById('shopsContainer'); 
+        if(!container) return;
+        
+        // --- 1. PRE-RENDER STATE SNAPSHOT ---
+        const expandedIds = Array.from(container.querySelectorAll('.card.expanded')).map(el => el.id);
+        const activeTabInfo = {}; // { shopIdx: 'dosa'|'appam' }
+        container.querySelectorAll('.card').forEach(card => {
+            const idxMatch = card.id.match(/\d+$/);
+            if (idxMatch) {
+                const idx = idxMatch[0];
+                const activeTab = card.querySelector('.tab-btn.active-dosa, .tab-btn.active-appam');
+                if (activeTab) {
+                    activeTabInfo[idx] = activeTab.innerText.toLowerCase().trim();
+                }
+            }
+        });
+
+        const activeElement = document.activeElement;
+        let focusedFieldId = null;
+        let cursorStart = 0, cursorEnd = 0;
+        
+        if (activeElement && container.contains(activeElement)) {
+            focusedFieldId = activeElement.dataset.focusId || activeElement.id;
+            if (activeElement.tagName === 'INPUT') {
+                cursorStart = activeElement.selectionStart;
+                cursorEnd = activeElement.selectionEnd;
+            }
+        }
+        
+        const filterDriver = selectedDriver;
+        const searchInput = document.getElementById('shopSearch');
+        const searchVal = (searchInput?.value || "").toLowerCase().trim();
+        
+        if(!filterDriver) {
+            container.innerHTML = `<div class="card" style="border:1px dashed #4f46e5; background:#eef2ff; padding:32px 20px; text-align:center; box-shadow:none; margin-bottom:24px"> Select Route First... </div>`;
+            return;
+        }
+        
+        let shownCount = 0;
+        // Logic: Show shops that HAVE activity today OR shops that historically belong to this route (if no search)
+        const dayData = globalDB[selectedDate] || {};
+        const activeShopsCombined = [];
+        const cats = [currentCategory];
+        cats.forEach(cat => {
+           const arr = dayData[cat]?.activeShops || [];
+           arr.forEach(shop => {
+               if (!activeShopsCombined.includes(shop)) {
+                   activeShopsCombined.push(shop);
+               }
+           });
+        });
+
+        const activeList = [];
+        const pendingList = [];
+
+        SHOP_LIST.forEach(shop => {
+            const data = (currentData && currentData.shops) ? currentData.shops[shop] : null;
+            const hasActivity = data ? hasShopEntryActivity(data) : false;
+            if (hasActivity) {
+                activeList.push(shop);
+            } else {
+                pendingList.push(shop);
+            }
+        });
+
+        activeList.sort((a, b) => {
+            const indexA = activeShopsCombined.indexOf(a);
+            const indexB = activeShopsCombined.indexOf(b);
+            if (indexA !== -1 && indexB !== -1) {
+                return indexA - indexB;
+            }
+            if (indexA !== -1) return -1;
+            if (indexB !== -1) return 1;
+            return a.localeCompare(b);
+        });
+
+        const listToIterate = [...activeList, ...pendingList];
+        let htmlBuffer = "";
+        
+        listToIterate.forEach((shop) => {
+            const idx = SHOP_LIST.indexOf(shop);
+            const data = currentData.shops[shop] || { dosa:{}, appam:{} };
+            const hasActivity = hasShopEntryActivity(data);
+            
+            // Filtering Logic:
+            // 1. If searching, match by name.
+            // 2. If not searching:
+            //    - Show if it has activity today AND matches the route.
+            //    - Show if it belongs to this route historically (even if no activity yet).
+            const matchesSearch = !searchVal || shop.toLowerCase().includes(searchVal);
+            if(!matchesSearch) return;
+
+            if(!searchVal) {
+                const ownerDriver = data.driver || getLastDriver(shop, selectedDate);
+                const isRouteMatch = (ownerDriver === filterDriver);
+                if(!isRouteMatch) return;
+            } else {
+                // If searching, we show anything that matches the name
+            }
+
+            const pD = getPrice(shop, 'dosa');
+            const pA = getPrice(shop, 'appam');
+            let totalValToday = 0;
+            const dayData = globalDB[selectedDate] || {};
+            const cats = [currentCategory];
+            cats.forEach(cat => {
+                const s = dayData?.[cat]?.shops?.[shop];
+                if(s) {
+                    totalValToday += ((Number(s.dosa?.sale)||0) + (Number(s.dosa?.cr)||0)) * getPrice(shop, 'dosa') + 
+                                     ((Number(s.appam?.sale)||0) + (Number(s.appam?.cr)||0)) * getPrice(shop, 'appam');
+                }
+            });
+            
+            if(shownCount >= 150) return;
+            shownCount++;
+            
+            // Determine initial tab state
+            const prefTab = activeTabInfo[idx] || 'dosa';
+
+            htmlBuffer += `
+            <div class="card ${hasActivity ? 'completed' : ''}" id="card-shop-${idx}">
+                <div class="shop-header" onclick="toggleShop(${idx})">
+                    <div class="shop-name">${shownCount}. ${shop}</div>
+                    <div class="shop-status" id="status-shop-${idx}">${hasActivity ? `<span>₹${getPaymentTotal(data)}</span>` : 'Pending'}<div class="status-dot"></div></div>
+                </div>
+                <div class="shop-body">
+                    <div class="prod-tabs">
+                        <div class="tab-btn ${prefTab==='dosa'?'active-dosa':''}" id="tab-dosa-${idx}" onclick="switchTab(${idx},'dosa')">Dosa</div>
+                        <div class="tab-btn ${prefTab==='appam'?'active-appam':''}" id="tab-appam-${idx}" onclick="switchTab(${idx},'appam')">Appam</div>
+                    </div>
+                    <div id="panel-dosa-${idx}" class="input-panel ${prefTab==='dosa'?'active':''}">
+                        <div class="input-grid">
+                            <div><label>Sale</label><input type="number" class="qty-input sale" data-focus-id="sale-dosa-${idx}" onchange="updateShopData('${shop}','dosa','sale',this.value)" value="${data.dosa.sale}"></div>
+                            <div><label>Credit</label><input type="number" class="qty-input cred" data-focus-id="cr-dosa-${idx}" onchange="updateShopData('${shop}','dosa','cr',this.value)" value="${data.dosa.cr}"></div>
+                            <div><label>Dmg</label><input type="number" class="qty-input" data-focus-id="dmg-dosa-${idx}" onchange="updateShopData('${shop}','dosa','dmg',this.value)" value="${data.dosa.dmg}"></div>
+                            <div><label>Free</label><input type="number" class="qty-input" data-focus-id="free-dosa-${idx}" onchange="updateShopData('${shop}','dosa','free',this.value)" value="${data.dosa.free}"></div>
+                        </div>
+                    </div>
+                    <div id="panel-appam-${idx}" class="input-panel ${prefTab==='appam'?'active':''}">
+                        <div class="input-grid">
+                            <div><label>Sale</label><input type="number" class="qty-input sale" data-focus-id="sale-appam-${idx}" onchange="updateShopData('${shop}','appam','sale',this.value)" value="${data.appam.sale}"></div>
+                            <div><label>Credit</label><input type="number" class="qty-input cred" data-focus-id="cr-appam-${idx}" onchange="updateShopData('${shop}','appam','cr',this.value)" value="${data.appam.cr}"></div>
+                            <div><label>Dmg</label><input type="number" class="qty-input" data-focus-id="dmg-appam-${idx}" onchange="updateShopData('${shop}','appam','dmg',this.value)" value="${data.appam.dmg}"></div>
+                            <div><label>Free</label><input type="number" class="qty-input" data-focus-id="free-appam-${idx}" onchange="updateShopData('${shop}','appam','free',this.value)" value="${data.appam.free}"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top:16px; padding:12px; background:white; border-radius:8px; border:1px solid #e2e8f0">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:8px">
+                            <div style="background:#fffbeb; padding:8px; border-radius:6px; border:1px solid #fde68a">
+                                <label style="font-size:9px; font-weight:700; color:#92400e; display:block; margin-bottom:2px">PREVIOUS DUES</label>
+                                <div style="font-size:15px; font-weight:700; color:#b45309" id="prev-${idx}">₹0</div>
+                            </div>
+                            <div style="background:#f0fdf4; padding:8px; border-radius:6px; border:1px solid #bbf7d0">
+                                <label style="font-size:9px; font-weight:700; color:#166534; display:block; margin-bottom:2px">TODAY'S SALE</label>
+                                <div style="font-size:15px; font-weight:700; color:#0f172a" id="total-${idx}">₹${totalValToday}</div>
+                            </div>
+                        </div>
+                        <!-- Today's Sales Payments -->
+                        <div style="margin-bottom:12px; padding:10px; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0">
+                            <span style="font-size:10px; font-weight:800; color:#475569; display:block; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.3px">Today's Sales Payments</span>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px">
+                                <div>
+                                    <label style="font-size:8px; font-weight:700; color:#64748b; display:block; margin-bottom:2px">CASH PAID</label>
+                                    <input type="number" class="qty-input" style="width:100%; font-size:13px; font-weight:700; background:#f0fdf4; border-color:#86efac"
+                                        data-focus-id="today-cash-${idx}"
+                                        onchange="updateTodayCashPaid('${shop}', this.value, ${idx})"
+                                        value="${data.todayCashPaid || ''}" placeholder="₹0">
+                                </div>
+                                <div>
+                                    <label style="font-size:8px; font-weight:700; color:#64748b; display:block; margin-bottom:2px">GPAY PAID</label>
+                                    <input type="number" class="qty-input" style="width:100%; font-size:13px; font-weight:700; background:#eff6ff; border-color:#93c5fd"
+                                        data-focus-id="today-gpay-${idx}"
+                                        onchange="updateTodayGpayPaid('${shop}', this.value, ${idx})"
+                                        value="${data.todayGpayPaid || ''}" placeholder="₹0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Old Credit Collections -->
+                        <div style="margin-bottom:12px; padding:10px; background:#fcf8f2; border-radius:8px; border:1px solid #f1e3d3">
+                            <span style="font-size:10px; font-weight:800; color:#854d0e; display:block; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.3px">Old Credit Collections</span>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px">
+                                <div>
+                                    <label style="font-size:8px; font-weight:700; color:#854d0e; display:block; margin-bottom:2px">CASH RECEIVED</label>
+                                    <input type="number" class="qty-input" style="width:100%; font-size:13px; font-weight:700; background:#fdfcfa; border-color:#f5d0a9"
+                                        data-focus-id="old-cash-${idx}"
+                                        onchange="updateOldCreditCash('${shop}', this.value, ${idx})"
+                                        value="${data.oldCreditCash || ''}" placeholder="₹0">
+                                </div>
+                                <div>
+                                    <label style="font-size:8px; font-weight:700; color:#854d0e; display:block; margin-bottom:2px">GPAY RECEIVED</label>
+                                    <input type="number" class="qty-input" style="width:100%; font-size:13px; font-weight:700; background:#fcfaff; border-color:#e8d5f5"
+                                        data-focus-id="old-gpay-${idx}"
+                                        onchange="updateOldCreditGpay('${shop}', this.value, ${idx})"
+                                        value="${data.oldCreditGpay || ''}" placeholder="₹0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- GPay Reference & Anand -->
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px">
+                            <div>
+                                <label style="font-size:8px; font-weight:700; color:#64748b; display:block; margin-bottom:2px">GPAY REF / TXN ID</label>
+                                <input type="text" class="qty-input" style="width:100%; font-size:11px; padding:6px; background:white; border-color:#cbd5e1"
+                                    data-focus-id="gpay-ref-${idx}"
+                                    onchange="updateGpayRef('${shop}', this.value, ${idx})"
+                                    value="${data.gpayRef || ''}" placeholder="Ref/Txn ID...">
+                            </div>
+                            <div>
+                                <label style="font-size:8px; font-weight:700; color:#e11d48; display:block; margin-bottom:2px">ANAND RECEIVED</label>
+                                <input type="number" class="qty-input" style="width:100%; font-size:13px; font-weight:700; background:#fff1f2; border-color:#fda4af"
+                                    data-focus-id="anand-${idx}"
+                                    onchange="updateAnandReceived('${shop}', this.value, ${idx})"
+                                    value="${data.anandReceived || ''}" placeholder="₹0">
+                            </div>
+                        </div>
+                        <div style="padding:10px; background:#f1f5f9; border-radius:6px; text-align:center; border:1px solid #e2e8f0">
+                            <div style="font-size:9px; font-weight:700; color:#64748b; margin-bottom:2px">CLOSING BALANCE</div>
+                            <div style="font-size:18px; font-weight:800" id="balance-${idx}">₹0</div>
+                        </div>
+                    </div>
+                    <button class="save-btn" onclick="toggleShop(${idx})">Done</button>
+                </div>
+            </div>`;
+        });
+        
+        if(!htmlBuffer) htmlBuffer = `<div style="text-align:center; padding:40px; color:#94a3b8; font-size:13px; background:#f8fafc; border-radius:12px; border:1px dashed #cbd5e1">No shops found</div>`;
+        container.innerHTML = htmlBuffer;
+        
+        // --- 2. RESTORE UI STATE ---
+        expandedIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('expanded');
+        });
+        
+        if (focusedFieldId) {
+            const target = container.querySelector(`[data-focus-id="${focusedFieldId}"]`);
+            if (target) {
+                target.focus();
+                if (target.tagName === 'INPUT') {
+                    try {
+                        target.setSelectionRange(cursorStart, cursorEnd);
+                    } catch (e) {
+                        // Suppress error on input types that don't support text selection (e.g. type="number")
+                    }
+                }
+            }
+        }
+
+        SHOP_LIST.forEach((shop, idx) => {
+            updateShopRowUI(shop);
+            updateShopBalance(shop, idx);
+        });
+    }
+
+    /* --- TALLY & RECONCILIATION LOGIC --- */
+    function syncTally() {
+        const otherCat = currentCategory === 'PACKET' ? 'LOOSE' : 'PACKET';
+        if (globalDB[selectedDate] && globalDB[selectedDate][otherCat]) {
+            globalDB[selectedDate][otherCat].tally = JSON.parse(JSON.stringify(currentData.tally));
+        }
+    }
+
+    function saveTallyData() {
+        syncTally();
+        saveData();
+    }
+
+    function addExpense() {
+        if(!currentData.tally) currentData.tally = { cashInHandMap: {}, denomsMap: {}, expenses: [], extraIncome: [] };
+        if(!currentData.tally.expenses) currentData.tally.expenses = [];
+        currentData.tally.expenses.push({ id: generateId(), detail: '', amount: '', driver: selectedDriver });
+        saveTallyData();
+        renderTally();
+    }
+
+    function updateExpense(idx, field, val) {
+        const filterDriver = selectedDriver;
+        let localIdx = 0;
+        for(let i=0; i<currentData.tally.expenses.length; i++) {
+            if(!filterDriver || currentData.tally.expenses[i].driver === filterDriver) {
+                if(localIdx === idx) {
+                    currentData.tally.expenses[i][field] = val;
+                    break;
+                }
+                localIdx++;
+            }
+        }
+        saveTallyData();
+        // OPTIMIZATION: Only update totals to keep input focus intact
+        updateTallyReconciliationUI();
+    }
+
+    function deleteExpense(idx) {
+        if(!confirm("Delete expense?")) return;
+        const filterDriver = selectedDriver;
+        let localIdx = 0;
+        for(let i=0; i<currentData.tally.expenses.length; i++) {
+            if(!filterDriver || currentData.tally.expenses[i].driver === filterDriver) {
+                if(localIdx === idx) {
+                    currentData.tally.expenses.splice(i, 1);
+                    break;
+                }
+                localIdx++;
+            }
+        }
+        saveTallyData();
+        renderTally();
+    }
+
+    /* --- EXTRA INCOME LOGIC --- */
+    function addExtraIncome() {
+        if(!currentData.tally) currentData.tally = { cashInHandMap: {}, denomsMap: {}, expenses: [], extraIncome: [] };
+        if(!currentData.tally.extraIncome) currentData.tally.extraIncome = [];
+        currentData.tally.extraIncome.push({ id: generateId(), item: '', amount: '', driver: selectedDriver });
+        saveTallyData();
+        renderTally();
+    }
+
+    function updateExtraIncome(idx, field, val) {
+        const filterDriver = selectedDriver;
+        let localIdx = 0;
+        for(let i=0; i<currentData.tally.extraIncome.length; i++) {
+            if(!filterDriver || currentData.tally.extraIncome[i].driver === filterDriver) {
+                if(localIdx === idx) {
+                    currentData.tally.extraIncome[i][field] = val;
+                    break;
+                }
+                localIdx++;
+            }
+        }
+        saveTallyData();
+        // OPTIMIZATION: Only update totals to keep input focus intact
+        updateTallyReconciliationUI();
+    }
+
+    function deleteExtraIncome(idx) {
+        if(!confirm("Delete extra income?")) return;
+        const filterDriver = selectedDriver;
+        let localIdx = 0;
+        for(let i=0; i<currentData.tally.extraIncome.length; i++) {
+            if(!filterDriver || currentData.tally.extraIncome[i].driver === filterDriver) {
+                if(localIdx === idx) {
+                    currentData.tally.extraIncome.splice(i, 1);
+                    break;
+                }
+                localIdx++;
+            }
+        }
+        saveTallyData();
+        renderTally();
+    }
+    
+    function updateCashInHand(val) {
+        if(!currentData.tally) currentData.tally = { cashInHandMap: {}, denomsMap: {}, expenses: [], extraIncome: [] };
+        if(!currentData.tally.cashInHandMap) currentData.tally.cashInHandMap = {};
+        currentData.tally.cashInHandMap[selectedDriver || ''] = val;
+        saveTallyData();
+        updateTallyReconciliationUI();
+    }
+
+    function updateDenom(denom, qty) {
+        if(!currentData.tally) currentData.tally = { cashInHandMap: {}, denomsMap: {}, expenses: [], extraIncome: [] };
+        if(!currentData.tally.denomsMap) currentData.tally.denomsMap = {};
+        const driver = selectedDriver || '';
+        if(!currentData.tally.denomsMap[driver]) {
+            currentData.tally.denomsMap[driver] = { 500:'', 200:'', 100:'', 50:'', 20:'', 10:'', 1:'' };
+        }
+        currentData.tally.denomsMap[driver][denom] = qty;
+        
+        // Recalculate Total
+        const d = currentData.tally.denomsMap[driver];
+        const total = (Number(d[500])||0)*500 + (Number(d[200])||0)*200 + (Number(d[100])||0)*100 + (Number(d[50])||0)*50 + (Number(d[20])||0)*20 + (Number(d[10])||0)*10 + (Number(d[1])||0)*1;
+        
+        updateCashInHand(total);
+        
+        // Update the subtotal in UI without full re-render for performance
+        const subTotalEl = document.getElementById(`denom-sub-${denom}`);
+        if(subTotalEl) subTotalEl.innerText = `₹${((Number(qty)||0) * denom).toLocaleString()}`;
+    }
+
+    function calculateTallyStats() {
+        const filterDriver = selectedDriver;
+        
+        // 1. Initialize Stats Containers
+        const stats = {
+            dosa: { load: 0, sold: 0, credit: 0, free: 0, dmg: 0, balance: 0, finalTotal: 0 },
+            appam: { load: 0, sold: 0, credit: 0, free: 0, dmg: 0, balance: 0, finalTotal: 0 },
+            credits: [],
+            totalCashCollected: 0,
+            totalGpayCollected: 0,
+            totalAnandCollected: 0,
+            cashPacket: 0,
+            cashLoose: 0,
+            gpayPacket: 0,
+            gpayLoose: 0,
+            anandPacket: 0,
+            anandLoose: 0,
+            totalExpenses: 0,
+            totalExtraIncome: 0,
+            totalOutstanding: 0,
+            cashInHand: 0,
+            netExpected: 0,
+            todayCashPaidSum: 0,
+            todayGpayPaidSum: 0,
+            oldCreditCashSum: 0,
+            oldCreditGpaySum: 0
+        };
+
+        const dayData = globalDB[selectedDate] || {};
+        const allShopsSet = new Set();
+        
+        // Get Cash in Hand from the CURRENT category (synced with the other category)
+        const activeTally = currentData.tally || {};
+        stats.cashInHand = Number(activeTally.cashInHandMap ? activeTally.cashInHandMap[filterDriver || ''] : 0) || 0;
+
+        const cats = ['PACKET', 'LOOSE'];
+        cats.forEach(cat => {
+            const catData = dayData[cat];
+            if(!catData) return;
+                
+            // 2. Aggregate LOADS (Trips) - ONLY for currentCategory
+            if (cat === currentCategory) {
+                const trips = (catData.trips || []).filter(t => !filterDriver || t.driver === filterDriver);
+                trips.forEach(t => {
+                    stats.dosa.load += Number(t.dosa) || 0;
+                    stats.appam.load += Number(t.appam) || 0;
+                });
+            }
+
+            // 3. Expenses & Extra Income - only for current category to avoid double counting (since they are synced)
+            if (cat === currentCategory) {
+                const tally = catData.tally || { expenses: [], extraIncome: [], cashInHandMap: {} };
+                const filteredExpenses = (tally.expenses || []).filter(e => !filterDriver || e.driver === filterDriver);
+                filteredExpenses.forEach(e => stats.totalExpenses += (Number(e.amount)||0));
+
+                const filteredExtra = (tally.extraIncome || []).filter(ei => !filterDriver || ei.driver === filterDriver);
+                filteredExtra.forEach(ei => stats.totalExtraIncome += (Number(ei.amount)||0));
+            }
+            
+            // 4. Aggregate SHOP SALES & PAYMENTS
+            const shops = catData.shops || {};
+            Object.keys(shops).forEach(shop => {
+                const s = shops[shop];
+                if(!s || (filterDriver && s.driver !== filterDriver)) return;
+
+                const dSale = Number(s.dosa?.sale)||0;
+                const dCr = Number(s.dosa?.cr)||0;
+                const dDmg = Number(s.dosa?.dmg)||0;
+                const dFree = Number(s.dosa?.free)||0;
+                
+                const aSale = Number(s.appam?.sale)||0;
+                const aCr = Number(s.appam?.cr)||0;
+                const aDmg = Number(s.appam?.dmg)||0;
+                const aFree = Number(s.appam?.free)||0;
+
+                // Product quantities are only aggregated for currentCategory
+                if (cat === currentCategory) {
+                    stats.dosa.sold += dSale;
+                    stats.dosa.credit += dCr; 
+                    stats.dosa.dmg += dDmg;
+                    stats.dosa.free += dFree;
+
+                    stats.appam.sold += aSale;
+                    stats.appam.credit += aCr;
+                    stats.appam.dmg += aDmg;
+                    stats.appam.free += aFree;
+                }
+
+                // Cash, Gpay & Anand Collected are aggregated across BOTH categories
+                const cash = (Number(s.cashReceived) || 0);
+                const gpay = (Number(s.gpayReceived) || 0);
+                const anand = (Number(s.anandReceived) || 0);
+                stats.totalCashCollected += cash;
+                stats.totalGpayCollected += gpay;
+                stats.totalAnandCollected += anand;
+
+                // Segregated sums
+                const tc = s.todayCashPaid !== undefined ? (Number(s.todayCashPaid) || 0) : (Number(s.cashReceived) || 0);
+                const tg = s.todayGpayPaid !== undefined ? (Number(s.todayGpayPaid) || 0) : (Number(s.gpayReceived) || 0);
+                const oc = Number(s.oldCreditCash) || 0;
+                const og = Number(s.oldCreditGpay) || 0;
+
+                stats.todayCashPaidSum += tc;
+                stats.todayGpayPaidSum += tg;
+                stats.oldCreditCashSum += oc;
+                stats.oldCreditGpaySum += og;
+                
+                if(cat === 'PACKET') {
+                    stats.cashPacket += cash;
+                    stats.gpayPacket += gpay;
+                    stats.anandPacket += anand;
+                } else if(cat === 'LOOSE') {
+                    stats.cashLoose += cash;
+                    stats.gpayLoose += gpay;
+                    stats.anandLoose += anand;
+                }
+                
+                allShopsSet.add(shop);
+            });
+        });
+
+        // Sum Outstanding & Credits list for all shops ever visited
+        allShopsSet.forEach(shop => {
+            let shopOutstandingBoth = 0;
+            let dCrTotal = 0;
+            let aCrTotal = 0;
+            
+            // Loop through BOTH categories to get today's true sales and payments
+            cats.forEach(cat => {
+                const prevDues = getPendingBalance(shop, selectedDate, cat);
+                const catObj = dayData[cat];
+                let todaySaleVal = 0;
+                let shopCashRec = 0;
+                if (catObj && catObj.shops) {
+                    const s = catObj.shops[shop];
+                    if (s) {
+                        const pD = getPrice(shop, 'dosa');
+                        const pA = getPrice(shop, 'appam');
+                        todaySaleVal = ((Number(s.dosa?.sale)||0) + (Number(s.dosa?.cr)||0)) * pD + 
+                                       ((Number(s.appam?.sale)||0) + (Number(s.appam?.cr)||0)) * pA;
+                        shopCashRec = (Number(s.cashReceived) || 0) + (Number(s.gpayReceived) || 0) + (Number(s.anandReceived) || 0);
+                        
+                        dCrTotal += (Number(s.dosa?.cr)||0);
+                        aCrTotal += (Number(s.appam?.cr)||0);
+                    }
+                }
+                shopOutstandingBoth += (prevDues + todaySaleVal - shopCashRec);
+            });
+            
+            const ownerDriver = getLastDriver(shop, selectedDate);
+            if (!filterDriver || ownerDriver === filterDriver) {
+                stats.totalOutstanding += shopOutstandingBoth;
+                
+                const creditVal = (dCrTotal * getPrice(shop, 'dosa')) + (aCrTotal * getPrice(shop, 'appam'));
+                if(creditVal > 0.1) stats.credits.push({ name: shop, value: creditVal });
+            }
+        });
+
+        // 5. Calculate Final Tally Fields (sold + credit + free + damage = total distributed)
+        const dOut = stats.dosa.sold + stats.dosa.credit + stats.dosa.free + stats.dosa.dmg;
+        const aOut = stats.appam.sold + stats.appam.credit + stats.appam.free + stats.appam.dmg;
+
+        stats.dosa.balance = stats.dosa.load - dOut;
+        stats.appam.balance = stats.appam.load - aOut;
+
+        stats.dosa.finalTotal = stats.dosa.sold + stats.dosa.credit;
+        stats.appam.finalTotal = stats.appam.sold + stats.appam.credit;
+        
+        stats.dosa.diff = 0;
+        stats.appam.diff = 0;
+
+        // 7. Cash In Hand & Net
+        stats.netExpected = stats.totalCashCollected + stats.totalExtraIncome - stats.totalExpenses;
+
+        return stats;
+    }
+    
+    function updateTallyReconciliationUI() {
+        // Recalculate everything
+        const stats = calculateTallyStats();
+        const diff = stats.cashInHand - stats.netExpected;
+        const isMatched = Math.abs(diff) < 0.1;
+
+        // Update Text Elements
+        const netEl = document.getElementById('uiNetExpected');
+        if(netEl) netEl.innerText = `₹${stats.netExpected}`;
+        
+        // Update the total cash in hand display if it exists (live feedback)
+        const totalDisplay = document.getElementById('denom-total-display');
+        if(totalDisplay) totalDisplay.innerText = `₹${stats.cashInHand.toLocaleString()}`;
+
+        const diffEl = document.getElementById('uiTallyDiff');
+        if(diffEl) {
+            diffEl.innerText = `₹${Math.abs(diff).toFixed(0)}`;
+            diffEl.style.color = isMatched ? 'var(--success)' : (diff > 0 ? '#3b82f6' : 'var(--danger)');
+        }
+
+        const reconPanel = document.getElementById('reconStatusPanel');
+        if(reconPanel) {
+            reconPanel.style.background = isMatched ? '#dcfce7' : (stats.cashInHand > 0 ? (diff > 0 ? '#fee2e2' : '#fef3c7') : '#f1f5f9');
+            reconPanel.innerHTML = `<div style="font-size:11px; font-weight:700; color:${isMatched ? '#166534' : '#991b1b'}">
+                ${isMatched ? 'Perfect' : (stats.cashInHand === 0 ? 'PLEASE ENTER CASH IN HAND' : (diff > 0 ? '⚠ EXTRA CASH: ₹'+diff.toFixed(2) : '⚠ SHORTAGE: ₹'+Math.abs(diff).toFixed(2)))}
+            </div>`;
+        }
+        
+        const card = document.getElementById('tallyCardMain');
+        if(card) {
+            card.style.borderColor = isMatched ? 'var(--success)' : (stats.cashInHand > 0 ? 'var(--danger)' : 'var(--border)');
+        }
+    }
+
+    function renderTally() {
+        const stats = calculateTallyStats();
+        const diff = stats.cashInHand - stats.netExpected;
+        const isMatched = Math.abs(diff) < 0.1;
+        const filterDriver = selectedDriver;
+        const filteredExpenses = (currentData.tally.expenses || []).filter(e => !filterDriver || e.driver === filterDriver);
+
+        let expHTML = filteredExpenses.map((e, i) => `
+            <div style="display:flex; gap:8px; align-items:center; padding:4px 0; border-bottom:1px dashed #e2e8f0; font-size:12px; color:#64748b">
+                <input id="exp-detail-${i}" type="text" placeholder="Expense Detail" value="${e.detail}" onchange="updateExpense(${i},'detail',this.value)" style="flex:2; border:none; background:transparent; font-size:12px; font-weight:600; outline:none; border-bottom:1px dashed #e2e8f0">
+                <div style="display:flex; align-items:center; gap:8px; flex:1">
+                    <span style="font-weight:700; color:var(--danger)">₹</span>
+                    <input id="exp-amount-${i}" type="number" placeholder="0" value="${e.amount}" onchange="updateExpense(${i},'amount',this.value)" style="width:100%; border:none; background:transparent; font-size:12px; font-weight:700; color:var(--danger); outline:none; border-bottom:1px dashed #fee2e2">
+                    <button onclick="deleteExpense(${i})" style="color:#cbd5e1; border:none; background:none; font-size:16px; cursor:pointer">×</button>
+                </div>
+            </div>
+        `).join('');
+
+            const renderProductSection = (name, data, color) => `
+            <div style="margin-bottom:20px; background:#fff; border-radius:12px; padding:0; border:1px solid #e2e8f0; overflow:hidden">
+                <div style="padding:12px; background:${color}10; border-bottom:1px solid ${color}30; display:flex; justify-content:space-between; align-items:center">
+                    <div style="font-size:14px; font-weight:800; color:${color};">${name}</div>
+                    <div style="font-size:11px; font-weight:700; color:${color}; opacity:0.8">QTY TALLY</div>
+                </div>
+                
+                <table style="width:100%; font-size:12px; border-collapse:collapse">
+                    <tr style="border-bottom:1px solid #f1f5f9">
+                        <td style="padding:10px 12px; color:#64748b; font-weight:600">Total Loaded</td>
+                        <td style="padding:10px 12px; text-align:right; font-weight:700; color:#0f172a">${data.load}</td>
+                    </tr>
+                    <tr style="border-bottom:2px solid #e2e8f0; background:#f8fafc">
+                        <td style="padding:10px 12px; color:#334155; font-weight:800">Total Distributed</td>
+                        <td style="padding:10px 12px; text-align:right; font-weight:800; color:#334155">${data.load - data.balance}</td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="padding:8px 12px; color:#64748b; font-size:11px">Sold (Cash)</td>
+                        <td style="padding:8px 12px; text-align:right; font-weight:600; color:#10b981">${data.sold}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:8px 12px; color:#64748b; font-size:11px">Credit</td>
+                        <td style="padding:8px 12px; text-align:right; font-weight:600; color:#f59e0b">${data.credit}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:8px 12px; color:#64748b; font-size:11px">Free</td>
+                        <td style="padding:8px 12px; text-align:right; font-weight:600; color:#3b82f6">${data.free}</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #f1f5f9">
+                        <td style="padding:8px 12px; color:#64748b; font-size:11px">Damage</td>
+                        <td style="padding:8px 12px; text-align:right; font-weight:600; color:#ef4444">${data.dmg}</td>
+                    </tr>
+                    
+                    <tr style="background:#f0fdf4">
+                        <td style="padding:10px 12px; color:#166534; font-weight:800">Stock Remaining</td>
+                        <td style="padding:10px 12px; text-align:right; font-weight:800; color:#166534">${data.balance}</td>
+                    </tr>
+                </table>
+            </div>
+            `;
+
+        const creditTotal = stats.credits.reduce((a, b) => a + b.value, 0);
+        const creditsHTML = stats.credits.map(c => `
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px">
+                <span style="color:#64748b">${c.name}</span>
+                <span style="font-weight:700; color:#0f172a">₹${c.value}</span>
+            </div>
+        `).join('');
+
+        document.getElementById('tallyContainer').innerHTML = `
+            <div class="card" id="tallyCardMain" style="padding:24px; border:1px solid #e2e8f0; background:#fff">
+                <h3 style="font-size:16px; font-weight:900; color:#0f172a; margin-bottom:20px; text-transform:uppercase; letter-spacing:1px; text-align:center">Totals Written on Sheet</h3>
+                
+                <div class="tally-grid-container">
+                    ${renderProductSection('DOSA', stats.dosa, '#4f46e5')}
+                    ${renderProductSection('APPAM', stats.appam, '#f59e0b')}
+                </div>
+
+                <!-- Collection & Sales Breakdown -->
+                <div style="background:#fcfaf7; border-radius:12px; padding:16px; border:1px solid #f1e3d3; margin:20px 0">
+                    <h3 style="font-size:13px; font-weight:800; color:#854d0e; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.5px; text-align:center; border-bottom:1px solid #f1e3d3; padding-bottom:6px">Collection & Sales Breakdown</h3>
+                    
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:12px">
+                        <span style="color:#64748b">1. Today's Sales Cash Payments</span>
+                        <span style="font-weight:700; color:#10b981">₹${stats.todayCashPaidSum}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:12px">
+                        <span style="color:#64748b">2. Today's Sales GPay Payments</span>
+                        <span style="font-weight:700; color:#4f46e5">₹${stats.todayGpayPaidSum}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:12px; padding-bottom:6px; border-bottom:1px dashed #e2e8f0">
+                        <span style="color:#64748b">3. Today's Sales Credit Sales</span>
+                        <span style="font-weight:700; color:#f59e0b">₹${creditTotal}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:12px; font-weight:800; color:#0f172a; padding-top:4px">
+                        <span>Total Today's Sales Value</span>
+                        <span>₹${stats.todayCashPaidSum + stats.todayGpayPaidSum + creditTotal}</span>
+                    </div>
+                    
+                    <div style="margin-top:8px; padding-top:8px; border-top:1px solid #e2e8f0">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:12px">
+                            <span style="color:#854d0e">4. Old Credit Collection (Cash)</span>
+                            <span style="font-weight:700; color:#854d0e">₹${stats.oldCreditCashSum}</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:12px; padding-bottom:6px; border-bottom:1px dashed #f1e3d3">
+                            <span style="color:#854d0e">5. Old Credit Collection (GPay)</span>
+                            <span style="font-weight:700; color:#854d0e">₹${stats.oldCreditGpaySum}</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:12px; font-weight:800; color:#854d0e">
+                            <span>Total Old Credit Collections / Cash Received</span>
+                            <span>₹${stats.oldCreditCashSum + stats.oldCreditGpaySum}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3 style="font-size:16px; font-weight:900; color:#0f172a; margin:24px 0 16px 0; text-transform:uppercase; letter-spacing:1px; text-align:center">Cash Reconciliation</h3>
+
+                <div style="background:#f8fafc; border-radius:12px; padding:16px; border:1px solid #e2e8f0; margin-bottom:20px">
+                    <!-- Cash Breakdown -->
+                    <div style="display:flex; justify-content:space-between; margin-bottom:4px">
+                        <span style="color:#64748b; font-size:11px">Total Cash (PACKETS)</span>
+                        <span style="font-weight:700; color:#475569">₹${stats.cashPacket}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px">
+                        <span style="color:#64748b; font-size:11px">Total Cash (LOOSE)</span>
+                        <span style="font-weight:700; color:#475569">₹${stats.cashLoose}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:12px; padding-top:4px; border-top:1px solid #e2e8f0">
+                        <span style="color:#334155; font-weight:700">Total Cash Collected</span>
+                        <span style="font-weight:800; color:#0f172a">₹${stats.totalCashCollected}</span>
+                    </div>
+
+                    <!-- Gpay Breakdown -->
+                    <div style="display:flex; justify-content:space-between; margin-bottom:4px; padding-top:8px; border-top:2px dashed #e2e8f0">
+                        <span style="color:#64748b; font-size:11px">Total Gpay (PACKETS)</span>
+                        <span style="font-weight:700; color:#475569">₹${stats.gpayPacket}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px">
+                        <span style="color:#64748b; font-size:11px">Total Gpay (LOOSE)</span>
+                        <span style="font-weight:700; color:#475569">₹${stats.gpayLoose}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:12px; padding-top:4px; border-top:1px solid #e2e8f0">
+                        <span style="color:#4f46e5; font-weight:700">Total Gpay Collected</span>
+                        <span style="font-weight:800; color:#4f46e5">₹${stats.totalGpayCollected}</span>
+                    </div>
+
+                    <!-- Anand Breakdown -->
+                    <div style="display:flex; justify-content:space-between; margin-bottom:4px; padding-top:8px; border-top:2px dashed #e2e8f0">
+                        <span style="color:#64748b; font-size:11px">Total Anand (PACKETS)</span>
+                        <span style="font-weight:700; color:#475569">₹${stats.anandPacket}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px">
+                        <span style="color:#64748b; font-size:11px">Total Anand (LOOSE)</span>
+                        <span style="font-weight:700; color:#475569">₹${stats.anandLoose}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:12px; padding-top:4px; border-top:1px solid #e2e8f0">
+                        <span style="color:#e11d48; font-weight:700">Total ANAND Collected</span>
+                        <span style="font-weight:800; color:#e11d48">₹${stats.totalAnandCollected}</span>
+                    </div>
+
+                    ${stats.totalExtraIncome > 0 ? `
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px; padding-top:8px; border-top:2px dashed #cbd5e1">
+                        <span style="color:#64748b; font-weight:600">Extra Income</span>
+                        <span style="font-weight:800; color:#10b981">+ ₹${stats.totalExtraIncome}</span>
+                    </div>` : ''}
+                    <div style="display:flex; justify-content:space-between; margin-bottom:12px; padding-top:8px; padding-bottom:12px; border-bottom:1px dashed #cbd5e1; border-top: ${stats.totalExtraIncome > 0 ? 'none' : '2px dashed #cbd5e1'}">
+                        <span style="color:#64748b; font-weight:600">Expenses</span>
+                        <span style="font-weight:800; color:#ef4444">- ₹${stats.totalExpenses}</span>
+                    </div>
+                    
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
+                        <span style="font-weight:800; color:#334155; text-transform:uppercase; font-size:12px">Net Expected Cash</span>
+                        <span style="font-weight:900; color:#0f172a; font-size:20px" id="uiNetExpected">₹${stats.netExpected}</span>
+                    </div>
+
+                    <div style="background:white; border:2px solid #e2e8f0; border-radius:12px; padding:16px; margin-bottom:20px">
+                        <label style="display:block; font-size:11px; font-weight:800; color:#64748b; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.5px">Actual Cash Denominations</label>
+                        
+                        <div style="display:grid; grid-template-columns:1fr; gap:8px">
+                            ${[500, 200, 100, 50, 20, 10, 1].map(val => {
+                                const driver = selectedDriver || '';
+                                const qty = (currentData.tally.denomsMap && currentData.tally.denomsMap[driver]) ? (currentData.tally.denomsMap[driver][val] || '') : '';
+                                return `
+                                <div style="display:flex; align-items:center; gap:12px; background:#f8fafc; padding:8px 12px; border-radius:10px; border:1px solid #f1f5f9">
+                                    <div style="width:40px; font-weight:800; color:#475569; font-size:13px">₹${val}</div>
+                                    <div style="color:#cbd5e1; font-size:10px">×</div>
+                                    <input type="number" placeholder="0" value="${qty}" 
+                                        onchange="updateDenom(${val}, this.value)"
+                                        style="flex:1; background:white; border:1px solid #e2e8f0; border-radius:6px; padding:6px 8px; font-weight:700; font-size:14px; color:#0f172a; outline:none; text-align:center">
+                                    <div id="denom-sub-${val}" style="width:80px; text-align:right; font-weight:800; color:#0f172a; font-size:14px">₹${((Number(qty)||0) * val).toLocaleString()}</div>
+                                </div>
+                                `;
+                            }).join('')}
+                        </div>
+                        
+                        <div style="margin-top:16px; padding-top:12px; border-top:2px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center">
+                            <span style="font-weight:800; color:#64748b; font-size:11px; text-transform:uppercase">Total Cash In Hand</span>
+                            <span style="font-weight:900; color:var(--primary); font-size:22px" id="denom-total-display">₹${stats.cashInHand.toLocaleString()}</span>
+                        </div>
+                    </div>
+
+                    <div id="reconStatusPanel" style="margin-top:12px; text-align:center; padding:10px; background:#f1f5f9; border-radius:8px;">
+                        <span style="font-size:12px; color:#94a3b8">Enter denoms to reconcile</span>
+                    </div>
+                    
+                    <div style="text-align:center; margin-top:8px">
+                         <span style="font-size:11px; font-weight:700; color:#cbd5e1">DIFFERENCE: <span id="uiTallyDiff">₹${Math.abs(diff).toFixed(0)}</span></span>
+                    </div>
+                </div>
+
+                <div style="background:#fffbeb; border:1px solid #fcd34d; border-radius:12px; padding:16px; display:${stats.credits.length>0?'block':'none'}">
+                     <div style="font-size:11px; font-weight:800; color:#b45309; text-transform:uppercase; margin-bottom:10px; display:flex; justify-content:space-between">
+                        <span>Balance Credit Given</span>
+                        <span>₹${creditTotal}</span>
+                     </div>
+                     ${creditsHTML}
+                </div>
+            </div>
+            
+            <div style="margin-top:24px">
+                <div class="card" style="border:none; background:transparent; box-shadow:none; margin-bottom:8px">
+                    <div class="card-head" style="background:transparent; padding-left:0; color:var(--text-main)">
+                        <span>Expense Breakdown</span>
+                    </div>
+                </div>
+                <div style="background:white; border-radius:12px; padding:16px; border:1px solid #e2e8f0">
+                    ${expHTML}
+                    <button onclick="addExpense()" style="width:100%; padding:12px; border:1px dashed #cbd5e1; background:#f8fafc; color:#64748b; border-radius:8px; font-weight:700; font-size:12px; margin-top:12px; cursor:pointer">+ Add Expense Row</button>
+                    
+                    <div style="margin-top:24px; border-top:1px solid #f1f5f9; padding-top:16px">
+                        <div style="font-size:11px; font-weight:800; color:#cbd5e1; margin-bottom:12px; text-transform:uppercase">One-off Extra Income</div>
+                        ${(currentData.tally.extraIncome || []).map((ei, i) => `
+                        <div style="display:flex; gap:8px; align-items:center; padding:4px 0; border-bottom:1px dashed #e2e8f0; font-size:12px; color:#64748b">
+                             <input type="text" placeholder="Extra Item" value="${ei.item}" onchange="updateExtraIncome(${i},'item',this.value)" style="flex:2; border:none; background:transparent; font-size:12px; font-weight:600; outline:none; border-bottom:1px dashed #e2e8f0">
+                             <div style="display:flex; align-items:center; gap:8px; flex:1">
+                                 <span style="font-weight:700; color:var(--success)">+ ₹</span>
+                                 <input type="number" placeholder="0" value="${ei.amount}" onchange="updateExtraIncome(${i},'amount',this.value)" style="width:100%; border:none; background:transparent; font-size:12px; font-weight:700; color:var(--success); outline:none; border-bottom:1px dashed #86efac">
+                                 <button onclick="deleteExtraIncome(${i})" style="color:#cbd5e1; border:none; background:none; font-size:16px; cursor:pointer">×</button>
+                             </div>
+                        </div>`).join('')}
+                        <button onclick="addExtraIncome()" style="width:100%; padding:12px; border:1px dashed #cbd5e1; background:#f0fdf4; color:#16a34a; border-radius:8px; font-weight:700; font-size:12px; margin-top:12px; cursor:pointer">+ Add Extra Income</button>
+                    </div>
+                    
+                </div>
+             </div>
+        `;
+    }
+
+    // All functions are now automatically global in the non-module script.
+    console.log("IyersRoute V3.1 Script Loaded.");
+</script>
+</html>
