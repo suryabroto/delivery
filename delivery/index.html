@@ -1939,6 +1939,17 @@
         if (dayData[currentCategory] && dayData[currentCategory].activeShops) {
             dayData[currentCategory].activeShops.forEach(s => allShopsSet.add(s));
         }
+
+        // Find active routes for selectedActualDriver today
+        const activeRoutesForDriver = new Set();
+        if (selectedActualDriver) {
+            const trips = dayData[currentCategory]?.trips || [];
+            trips.forEach(t => {
+                if (t.actualDriver === selectedActualDriver) {
+                    activeRoutesForDriver.add(t.driver);
+                }
+            });
+        }
         
         const sortedShops = Array.from(allShopsSet).sort();
         let shopIdx = 0;
@@ -1966,9 +1977,10 @@
 
             // Display logic: Show if they owe money OR if they got credit today
             if(totalOutstanding > 0.1 || todayCreditOnly > 0.1) {
-                // Driver Filter: Only show if it belongs to the selected route
+                // Driver Filter: Only show if it belongs to the selected route / driver
                 const ownerDriver = currentDriverName || getLastDriver(shop, selectedDate);
                 if(selectedDriver && ownerDriver && ownerDriver !== selectedDriver) return;
+                if(selectedActualDriver && ownerDriver && !activeRoutesForDriver.has(ownerDriver)) return;
 
                 found = true;
                 grandTotalDues += Math.max(0, totalOutstanding);
@@ -2057,10 +2069,12 @@
          if (!activeHubSelect) return;
          const filterHub = activeHubSelect.value;
          const filterDriver = selectedDriver;
+         const filterActualDriver = selectedActualDriver;
          const fTrips = currentData.trips.filter(t => {
              const hubMatch = filterHub === "ALL" || t.hub === filterHub;
              const driverMatch = !filterDriver || t.driver === filterDriver;
-             return hubMatch && driverMatch;
+             const actualDriverMatch = !filterActualDriver || t.actualDriver === filterActualDriver;
+             return hubMatch && driverMatch && actualDriverMatch;
          });
 
          const tLog = document.getElementById('tripLogBody'); 
@@ -2130,7 +2144,21 @@
         }
 
         // FILTER: If a global driver is selected, only show them. Otherwise show all.
-        const driversToShow = selectedDriver ? [selectedDriver] : DRIVERS;
+        let driversToShow = selectedDriver ? [selectedDriver] : DRIVERS;
+        if (selectedActualDriver) {
+            const driverRoutes = new Set();
+            dates.forEach(d => {
+                const dayData = globalDB[d] || {};
+                if (dayData[currentCategory] && dayData[currentCategory].trips) {
+                    dayData[currentCategory].trips.forEach(t => {
+                        if (t.actualDriver === selectedActualDriver) {
+                            driverRoutes.add(t.driver);
+                        }
+                    });
+                }
+            });
+            driversToShow = driversToShow.filter(d => driverRoutes.has(d));
+        }
 
         driversToShow.forEach((driver) => {
             let dSold = 0, aSold = 0, tripCount = 0;
@@ -2354,8 +2382,20 @@
         }
         
         const filterDriver = selectedDriver;
+        const filterActualDriver = selectedActualDriver;
         const searchInput = document.getElementById('shopSearch');
         const searchVal = (searchInput?.value || "").toLowerCase().trim();
+        
+        const dayData = globalDB[selectedDate] || {};
+        const activeRoutesForDriver = new Set();
+        if (filterActualDriver) {
+            const trips = dayData[currentCategory]?.trips || [];
+            trips.forEach(t => {
+                if (t.actualDriver === filterActualDriver) {
+                    activeRoutesForDriver.add(t.driver);
+                }
+            });
+        }
         
         if(!filterDriver) {
             container.innerHTML = `<div class="card" style="border:1px dashed #4f46e5; background:#eef2ff; padding:32px 20px; text-align:center; box-shadow:none; margin-bottom:24px"> Select Route First... </div>`;
@@ -2364,7 +2404,6 @@
         
         let shownCount = 0;
         // Logic: Show shops that HAVE activity today OR shops that historically belong to this route (if no search)
-        const dayData = globalDB[selectedDate] || {};
         const activeShopsCombined = [];
         const cats = [currentCategory];
         cats.forEach(cat => {
@@ -2409,25 +2448,19 @@
             const hasActivity = hasShopEntryActivity(data);
             
             // Filtering Logic:
-            // 1. If searching, match by name.
-            // 2. If not searching:
-            //    - Show if it has activity today AND matches the route.
-            //    - Show if it belongs to this route historically (even if no activity yet).
+            // Show only if it matches route and matches the driver (if selected)
             const matchesSearch = !searchVal || shop.toLowerCase().includes(searchVal);
             if(!matchesSearch) return;
 
-            if(!searchVal) {
-                const ownerDriver = data.driver || getLastDriver(shop, selectedDate);
-                const isRouteMatch = (ownerDriver === filterDriver);
-                if(!isRouteMatch) return;
-            } else {
-                // If searching, we show anything that matches the name
-            }
+            const ownerDriver = data.driver || getLastDriver(shop, selectedDate);
+            const isRouteMatch = (ownerDriver === filterDriver);
+            const isDriverMatch = !filterActualDriver || activeRoutesForDriver.has(ownerDriver);
+            
+            if(!isRouteMatch || !isDriverMatch) return;
 
             const pD = getPrice(shop, 'dosa');
             const pA = getPrice(shop, 'appam');
             let totalValToday = 0;
-            const dayData = globalDB[selectedDate] || {};
             const cats = [currentCategory];
             cats.forEach(cat => {
                 const s = dayData?.[cat]?.shops?.[shop];
@@ -2708,6 +2741,7 @@
 
     function calculateTallyStats() {
         const filterDriver = selectedDriver;
+        const filterActualDriver = selectedActualDriver;
         
         // 1. Initialize Stats Containers
         const stats = {
@@ -2736,32 +2770,57 @@
 
         const dayData = globalDB[selectedDate] || {};
         const allShopsSet = new Set();
-        
-        // Get Cash in Hand from the CURRENT category (synced with the other category)
-        const activeTally = currentData.tally || {};
-        stats.cashInHand = Number(activeTally.cashInHandMap ? activeTally.cashInHandMap[filterDriver || ''] : 0) || 0;
-
         const cats = ['PACKET', 'LOOSE'];
+
+        // Find all routes driven by filterActualDriver today
+        const activeRoutesForDriver = new Set();
+        if (filterActualDriver) {
+            cats.forEach(cat => {
+                const catData = dayData[cat];
+                if (catData && catData.trips) {
+                    catData.trips.forEach(t => {
+                        if (t.actualDriver === filterActualDriver) {
+                            activeRoutesForDriver.add(t.driver);
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Get Cash in Hand from the CURRENT category
+        const activeTally = currentData.tally || {};
+        const keyForCash = filterActualDriver || filterDriver || '';
+        stats.cashInHand = Number(activeTally.cashInHandMap ? activeTally.cashInHandMap[keyForCash] : 0) || 0;
+
         cats.forEach(cat => {
             const catData = dayData[cat];
             if(!catData) return;
                 
             // 2. Aggregate LOADS (Trips) - ONLY for currentCategory
             if (cat === currentCategory) {
-                const trips = (catData.trips || []).filter(t => !filterDriver || t.driver === filterDriver);
+                const trips = (catData.trips || []).filter(t => 
+                    (!filterDriver || t.driver === filterDriver) &&
+                    (!filterActualDriver || t.actualDriver === filterActualDriver)
+                );
                 trips.forEach(t => {
                     stats.dosa.load += Number(t.dosa) || 0;
                     stats.appam.load += Number(t.appam) || 0;
                 });
             }
 
-            // 3. Expenses & Extra Income - only for current category to avoid double counting (since they are synced)
+            // 3. Expenses & Extra Income
             if (cat === currentCategory) {
                 const tally = catData.tally || { expenses: [], extraIncome: [], cashInHandMap: {} };
-                const filteredExpenses = (tally.expenses || []).filter(e => !filterDriver || e.driver === filterDriver);
+                const filteredExpenses = (tally.expenses || []).filter(e => 
+                    (!filterDriver || e.driver === filterDriver) &&
+                    (!filterActualDriver || activeRoutesForDriver.has(e.driver))
+                );
                 filteredExpenses.forEach(e => stats.totalExpenses += (Number(e.amount)||0));
 
-                const filteredExtra = (tally.extraIncome || []).filter(ei => !filterDriver || ei.driver === filterDriver);
+                const filteredExtra = (tally.extraIncome || []).filter(ei => 
+                    (!filterDriver || ei.driver === filterDriver) &&
+                    (!filterActualDriver || activeRoutesForDriver.has(ei.driver))
+                );
                 filteredExtra.forEach(ei => stats.totalExtraIncome += (Number(ei.amount)||0));
             }
             
@@ -2769,7 +2828,12 @@
             const shops = catData.shops || {};
             Object.keys(shops).forEach(shop => {
                 const s = shops[shop];
-                if(!s || (filterDriver && s.driver !== filterDriver)) return;
+                if(!s) return;
+
+                // Route Filter
+                if(filterDriver && s.driver !== filterDriver) return;
+                // Driver Filter
+                if(filterActualDriver && !activeRoutesForDriver.has(s.driver)) return;
 
                 const dSale = Number(s.dosa?.sale)||0;
                 const dCr = Number(s.dosa?.cr)||0;
@@ -2856,7 +2920,10 @@
             });
             
             const ownerDriver = getLastDriver(shop, selectedDate);
-            if (!filterDriver || ownerDriver === filterDriver) {
+            const matchesRoute = !filterDriver || ownerDriver === filterDriver;
+            const matchesActualDriver = !filterActualDriver || activeRoutesForDriver.has(ownerDriver);
+            
+            if (matchesRoute && matchesActualDriver) {
                 stats.totalOutstanding += shopOutstandingBoth;
                 
                 const creditVal = (dCrTotal * getPrice(shop, 'dosa')) + (aCrTotal * getPrice(shop, 'appam'));
