@@ -827,33 +827,37 @@
 
             // 3. Save Shop Sales
             const salePayloads = [];
-            if (currentData.shops) {
+            if (selectedDriver && currentData.shops) {
                 Object.keys(currentData.shops).forEach(shopName => {
                     const s = currentData.shops[shopName];
                     if (s && (s.driver === selectedDriver || hasShopEntryActivity(s))) {
-                        salePayloads.push({
-                            id: `${selectedDate}-${currentCategory}-${shopName}`,
-                            date: selectedDate,
-                            category: currentCategory,
-                            shop_name: shopName,
-                            driver: s.driver || selectedDriver,
-                            dosa_sale: Number(s.dosa?.sale) || 0,
-                            dosa_cr: Number(s.dosa?.cr) || 0,
-                            dosa_dmg: Number(s.dosa?.dmg) || 0,
-                            dosa_free: Number(s.dosa?.free) || 0,
-                            appam_sale: Number(s.appam?.sale) || 0,
-                            appam_cr: Number(s.appam?.cr) || 0,
-                            appam_dmg: Number(s.appam?.dmg) || 0,
-                            appam_free: Number(s.appam?.free) || 0,
-                            cash_received: Number(s.cashReceived) || 0,
-                            gpay_received: Number(s.gpayReceived) || 0,
-                            anand_received: Number(s.anandReceived) || 0,
-                            today_cash_paid: Number(s.todayCashPaid) || 0,
-                            today_gpay_paid: Number(s.todayGpayPaid) || 0,
-                            old_credit_cash: Number(s.oldCreditCash) || 0,
-                            old_credit_gpay: Number(s.oldCreditGpay) || 0,
-                            gpay_ref: s.gpayRef || ''
-                        });
+                        const finalDriver = s.driver || selectedDriver;
+                        if (finalDriver) {
+                            s.driver = finalDriver; // sync in memory
+                            salePayloads.push({
+                                id: `${selectedDate}-${currentCategory}-${shopName}`,
+                                date: selectedDate,
+                                category: currentCategory,
+                                shop_name: shopName,
+                                driver: finalDriver,
+                                dosa_sale: Number(s.dosa?.sale) || 0,
+                                dosa_cr: Number(s.dosa?.cr) || 0,
+                                dosa_dmg: Number(s.dosa?.dmg) || 0,
+                                dosa_free: Number(s.dosa?.free) || 0,
+                                appam_sale: Number(s.appam?.sale) || 0,
+                                appam_cr: Number(s.appam?.cr) || 0,
+                                appam_dmg: Number(s.appam?.dmg) || 0,
+                                appam_free: Number(s.appam?.free) || 0,
+                                cash_received: Number(s.cashReceived) || 0,
+                                gpay_received: Number(s.gpayReceived) || 0,
+                                anand_received: Number(s.anandReceived) || 0,
+                                today_cash_paid: Number(s.todayCashPaid) || 0,
+                                today_gpay_paid: Number(s.todayGpayPaid) || 0,
+                                old_credit_cash: Number(s.oldCreditCash) || 0,
+                                old_credit_gpay: Number(s.oldCreditGpay) || 0,
+                                gpay_ref: s.gpayRef || ''
+                            });
+                        }
                     }
                 });
             }
@@ -2453,10 +2457,17 @@
             if(!matchesSearch) return;
 
             const ownerDriver = data.driver || getLastDriver(shop, selectedDate);
-            const isRouteMatch = (ownerDriver === filterDriver);
-            const isDriverMatch = !filterActualDriver || activeRoutesForDriver.has(ownerDriver);
             
-            if(!isRouteMatch || !isDriverMatch) return;
+            if (!searchVal) {
+                // Not searching: strict route & driver match
+                if (ownerDriver !== filterDriver) return;
+                if (filterActualDriver && !activeRoutesForDriver.has(ownerDriver)) return;
+            } else {
+                // Searching: show if it matches active route/driver filters OR is unassigned
+                const isAssignedToOtherRoute = ownerDriver && ownerDriver !== filterDriver;
+                const isAssignedToOtherDriver = filterActualDriver && ownerDriver && !activeRoutesForDriver.has(ownerDriver);
+                if (isAssignedToOtherRoute || isAssignedToOtherDriver) return;
+            }
 
             const pD = getPrice(shop, 'dosa');
             const pA = getPrice(shop, 'appam');
